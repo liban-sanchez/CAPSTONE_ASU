@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <title>Grey-Box</title>
+
+    <link rel="stylesheet" href="../css/bootstrap/bootstrap.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+    />
+    <link rel="stylesheet" href="../css/styles.css" />
+  </head>
+
+  <body class="py-3 px-3" style="background-color: #f7f8fa;">
+    <main class="container p-0">
+      <!-- Top Card -->
+      <section class="bg-white rounded shadow-sm border p-3 mb-3">
+        <div class="text-center mb-3">
+          <div class="d-flex justify-content-center align-items-center mb-2">
+            <img
+              src="../images/grey-box-play.png"
+              alt="Grey-Box Logo"
+              style="width: 42px; height: 42px; object-fit: contain;"
+            />
+          </div>
+          <h4 class="mb-1 fw-bold text-dark">Project Scraper Alpha</h4>
+          <div class="small text-muted">
+            Save websites for offline browsing
+          </div>
+        </div>
+
+        <!-- Main Action -->
+        <section class="d-flex justify-content-center mb-3">
+          <div id="submit-button" class="text-center w-100" style="cursor: pointer;">
+            <div
+              class="mx-auto d-flex align-items-center justify-content-center rounded-circle shadow-sm border"
+              style="width: 120px; height: 120px; background: #ffffff;"
+            >
+              <img
+                src="../images/grey-box-play.png"
+                alt="Start Download"
+                style="width: 54px; height: 54px; object-fit: contain;"
+              />
+            </div>
+
+            <div id="button-title" class="mt-3 fw-semibold text-dark">
+              Start Foreground Crawl
+            </div>
+
+            <div class="small text-muted mt-2 px-2">
+              The active browser tab will move page-to-page while your offline copy is prepared.
+            </div>
+          </div>
+        </section>
+
+        <!-- Toast -->
+        <section
+          class="toast w-100"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+          id="toast"
+        >
+          <div class="toast-header">
+            <strong class="me-auto">Download in Progress</strong>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="toast"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="toast-body">
+            A foreground crawl is already running.<br />
+            Please wait until it finishes.
+          </div>
+        </section>
+      </section>
+
+      <!-- Progress Card -->
+      <section class="bg-white rounded shadow-sm border p-3 mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="fw-semibold text-dark">Download Progress</div>
+          <div class="small text-muted">Live status</div>
+        </div>
+
+        <div class="progress-bar-wrapper">
+          <div
+            id="progress-bar"
+            class="progress-bar progress-bar-striped progress-bar-animated"
+            role="progressbar"
+            aria-valuenow="0"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            style="width: 0%; min-height: 24px;"
+          >
+            <span id="current-progress"></span>
+          </div>
+        </div>
+
+        <div class="small text-muted mt-2">
+          The final ZIP file will download after crawling and packaging are complete.
+        </div>
+      </section>
+
+      <!-- Crawl Settings Card -->
+      <section class="bg-white rounded shadow-sm border p-3 mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="fw-semibold text-dark">Crawl Settings</div>
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapseWidthOptions"
+            aria-expanded="false"
+            aria-controls="collapseWidthOptions"
+          >
+            Advanced Options <i class="bi bi-caret-down-fill ms-1"></i>
+          </button>
+        </div>
+
+        <!-- Depth Selector -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold text-dark" for="choose-depth-input">
+            Crawl Depth
+          </label>
+          <input
+            type="number"
+            id="choose-depth-input"
+            name="choose-depth"
+            min="0"
+            max="10"
+            class="form-control"
+            placeholder="Enter a depth from 0 to 10"
+          />
+
+          <div class="small text-muted mt-2">
+            <strong>Depth 0:</strong> Saves only the current page.
+          </div>
+          <div class="small text-muted mt-1">
+            <strong>Depth 1:</strong> Saves the current page and the pages it links to, so you can browse between them offline.
+          </div>
+          <div class="small text-warning mt-2">
+            This process may take up to 10 minutes depending on the website.
+          </div>
+        </div>
+
+        <!-- Advanced Options -->
+        <div class="collapse" id="collapseWidthOptions">
+          <div class="border-top pt-3">
+            <!-- Focus Mode -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <label class="form-check-label fw-semibold text-dark" for="focus-mode-toggle">
+                  Focus Mode
+                </label>
+                <div class="small text-muted">
+                  Intended to simplify downloaded content.
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <i
+                  class="bi bi-info-circle text-muted"
+                  data-bs-placement="top"
+                  title="This feature has not been fully implemented yet."
+                ></i>
+                <div class="form-check form-switch m-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="focus-mode-toggle"
+                    name="focus-mode"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Restrict Domain -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div>
+                <label class="form-check-label fw-semibold text-dark" for="restrict-domain-toggle">
+                  Restrict Domain
+                </label>
+                <div class="small text-muted">
+                  Only save pages from the same website domain.
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <i
+                  class="bi bi-info-circle text-muted"
+                  data-bs-placement="top"
+                  title="Recommended when using depth 1."
+                ></i>
+                <div class="form-check form-switch m-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="restrict-domain-toggle"
+                    name="restrict-domain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Download Multiple URLs -->
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div>
+                <label
+                  class="form-check-label fw-semibold text-dark"
+                  for="download-multiple-urls-toggle"
+                >
+                  Download Multiple URLs
+                </label>
+                <div class="small text-muted">
+                  Queue several websites at once.
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <i
+                  class="bi bi-info-circle text-muted"
+                  data-bs-placement="top"
+                  title="This feature has not been fully implemented yet."
+                ></i>
+                <div class="form-check form-switch m-0">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="download-multiple-urls-toggle"
+                    name="download-multiple-urls"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseWidthMultipleURLs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="collapse" id="collapseWidthMultipleURLs">
+              <div class="mt-2">
+                <textarea
+                  id="multiple-urls"
+                  name="multiple-urls"
+                  class="form-control"
+                  placeholder="Enter one URL per line..."
+                  rows="6"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feedback -->
+      <section id="feedback-form-section" class="bg-white rounded shadow-sm border p-3">
+        <div class="fw-semibold text-dark mb-1">Feedback</div>
+        <div class="small text-muted mb-2">
+          Help us improve the alpha experience.
+        </div>
+        <a
+          class="btn btn-secondary btn-sm"
+          href="https://forms.gle/p6quKSCDj5PoyVb37"
+          target="_blank"
+        >
+          Provide Feedback
+        </a>
+      </section>
+    </main>
+
+    <script src="../js/jquery/jquery-3.6.0.min.js"></script>
+    <script src="../js/jszip/jszip.js"></script>
+    <script src="../js/jszip/jszip-utils.js"></script>
+
+    <!-- Order is important -->
+    <script src="../js/utils/utility-functions.js"></script>
+    <script src="../js/popup.js"></script>
+    <script src="../js/bootstrap/bootstrap.min.js"></script>
+    <script src="../js/bootstrap/tooltip.js"></script>
+  </body>
+</html>
