@@ -118,42 +118,130 @@
             type="button"
             data-bs-toggle="collapse"
             data-bs-target="#collapseWidthOptions"
-            aria-expanded="false"
+            aria-expanded="true"
             aria-controls="collapseWidthOptions"
           >
             Advanced Options <i class="bi bi-caret-down-fill ms-1"></i>
           </button>
         </div>
 
-        <!-- Depth Selector -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold text-dark" for="choose-depth-input">
-            Crawl Depth
-          </label>
-          <input
-            type="number"
-            id="choose-depth-input"
-            name="choose-depth"
-            min="0"
-            max="10"
-            class="form-control"
-            placeholder="Enter a depth from 0 to 10"
-          />
+        <div class="collapse show" id="collapseWidthOptions">
+          <!-- Depth Selector -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold text-dark" for="choose-depth-input">
+              Crawl Depth
+            </label>
+            <input
+              type="number"
+              id="choose-depth-input"
+              name="choose-depth"
+              min="0"
+              max="10"
+              class="form-control"
+              placeholder="Enter a depth from 0 to 10"
+            />
 
-          <div class="small text-muted mt-2">
-            <strong>Depth 0:</strong> Saves only the current page.
+            <div class="small text-muted mt-2">
+              <strong>Depth 0:</strong> Saves only the current page.
+            </div>
+            <div class="small text-muted mt-1">
+              <strong>Depth 1:</strong> Saves the current page and first-level linked pages.
+              You can either download all valid links or choose the exact links manually.
+            </div>
+            <div class="small text-warning mt-2">
+              This process may take up to 10 minutes depending on the website.
+            </div>
           </div>
-          <div class="small text-muted mt-1">
-            <strong>Depth 1:</strong> Saves the current page and the pages it links to, so you can browse between them offline.
-          </div>
-          <div class="small text-warning mt-2">
-            This process may take up to 10 minutes depending on the website.
-          </div>
-        </div>
 
-        <!-- Advanced Options -->
-        <div class="collapse" id="collapseWidthOptions">
-          <div class="border-top pt-3">
+          <!-- Depth 1 Mode Section -->
+          <div id="depth-one-mode-section" class="mt-3">
+            <div class="fw-semibold text-dark mb-2">Depth 1 Mode</div>
+
+            <div class="form-check mb-2">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="depth-one-mode"
+                id="depth-one-all-links"
+                value="all"
+                checked
+              />
+              <label class="form-check-label text-dark" for="depth-one-all-links">
+                Download all first-level links
+              </label>
+              <div class="small text-muted ms-4">
+                Downloads the current page and every valid page it links to.
+              </div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="depth-one-mode"
+                id="depth-one-manual-links"
+                value="manual"
+              />
+              <label class="form-check-label text-dark" for="depth-one-manual-links">
+                Choose links manually
+              </label>
+              <div class="small text-muted ms-4">
+                Scans the page and lets you choose the exact links to download.
+              </div>
+            </div>
+
+            <!-- Manual Link Controls -->
+            <div
+              id="manual-link-controls"
+              class="border rounded p-2 bg-light"
+              style="display: none;"
+            >
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-semibold text-dark small">Select links to download</div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  id="scan-links-button"
+                >
+                  Scan Links
+                </button>
+              </div>
+
+              <div class="small text-muted mb-2">
+                Scan the current page and choose which first-level links should be included in the download.
+              </div>
+
+              <div class="d-flex gap-2 mb-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  id="select-all-links-button"
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  id="clear-all-links-button"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <div
+                id="manual-links-list"
+                class="border rounded bg-white p-2"
+                style="max-height: 180px; overflow-y: auto;"
+              >
+                <div class="small text-muted">
+                  No links scanned yet.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional future filters -->
+          <div class="border-top pt-3 mt-3">
             <!-- Focus Mode -->
             <div class="d-flex align-items-center justify-content-between mb-3">
               <div>

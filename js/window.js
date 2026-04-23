@@ -6,6 +6,10 @@ let isFocusMode = false;
 let isRestrictDomain = false;
 let maxDepthValue = 0;
 
+// New depth 1 mode state
+let depthOneMode = "all"; // "all" or "manual"
+let selectedManualLinks = []; // [url]
+
 let urlList = [];
 let urlCSSs = [];
 let urlImages = [];
@@ -45,7 +49,9 @@ broadcastChannel.addEventListener("message", (event) => {
     isFocusMode,
     isRestrictDomain,
     newMaxDepthValue,
-    sourceTabId
+    sourceTabId,
+    depthOneMode,
+    selectedManualLinks
   ] = event.data;
 
   // Normalize incoming values so executeScript args stay serializable
@@ -54,6 +60,10 @@ broadcastChannel.addEventListener("message", (event) => {
   isRestrictDomain = Boolean(isRestrictDomain);
   newMaxDepthValue = Number(newMaxDepthValue || 0);
   sourceTabId = sourceTabId ?? null;
+  depthOneMode = depthOneMode === "manual" ? "manual" : "all";
+  selectedManualLinks = Array.isArray(selectedManualLinks)
+    ? selectedManualLinks.map((link) => String(link))
+    : [];
 
   setDownloadFlag(true);
   setMaxDepth(newMaxDepthValue);
@@ -136,8 +146,14 @@ async function getForegroundLinks(url) {
         const absolute = anchor.href;
 
         if (!href || !absolute) continue;
-        if (absolute.startsWith("mailto:") || absolute.startsWith("tel:")) continue;
+
+        // Skip non-page links
         if (href.startsWith("#")) continue;
+        if (absolute.startsWith("mailto:")) continue;
+        if (absolute.startsWith("tel:")) continue;
+        if (absolute.startsWith("javascript:")) continue;
+        if (absolute.startsWith("about:")) continue;
+        if (!absolute.startsWith("http://") && !absolute.startsWith("https://")) continue;
 
         if (restrictDomain) {
           try {
@@ -188,6 +204,18 @@ function updateStatus(message) {
   }
 }
 
+function isSkippableAssetUrl(url) {
+  if (!url || typeof url !== "string") return true;
+
+  return (
+    url.startsWith("about:") ||
+    url.startsWith("javascript:") ||
+    url.startsWith("data:") ||
+    url.startsWith("mailto:") ||
+    url.startsWith("tel:")
+  );
+}
+
 /**
  * Rewrites normal page anchors to local saved HTML files.
  */
@@ -234,6 +262,7 @@ async function processCSSAndImages(htmlData, inputUrl) {
     try {
       let cssHref = linkElement.getAttribute("href");
       if (!cssHref) continue;
+      if (isSkippableAssetUrl(cssHref)) continue;
 
       if (!cssHref.startsWith("https://") && !cssHref.startsWith("http://")) {
         cssHref = getAbsolutePath(cssHref, inputUrl).href;
@@ -290,6 +319,19 @@ async function processCSSImages(cssData, cssUrl) {
       resolvedUrl = getAbsolutePath(imageUrl, cssUrl).href;
     }
 
+    if (isSkippableAssetUrl(resolvedUrl)) {
+      return match;
+    }
+
+    if (
+      resolvedUrl.endsWith(".woff") ||
+      resolvedUrl.endsWith(".woff2") ||
+      resolvedUrl.endsWith(".ttf") ||
+      resolvedUrl.endsWith(".otf")
+    ) {
+      return match;
+    }
+
     let imageName = resolvedUrl
       .substring(resolvedUrl.lastIndexOf("/") + 1)
       .replace(/[&\/\\#,+()$~%'":*?<>{}]/g, "");
@@ -325,6 +367,7 @@ async function processPdfs(htmlData, inputUrl) {
     try {
       let pdfHref = anchorElement.getAttribute("href");
       if (!pdfHref) continue;
+      if (isSkippableAssetUrl(pdfHref)) continue;
 
       if (!pdfHref.startsWith("https://") && !pdfHref.startsWith("http://")) {
         pdfHref = getAbsolutePath(pdfHref, inputUrl).href;
@@ -364,6 +407,7 @@ async function processImages(htmlData, inputUrl) {
     try {
       let imgSrc = imgElement.getAttribute("src");
       if (imgSrc === null || imgSrc.includes("base64")) continue;
+      if (isSkippableAssetUrl(imgSrc)) continue;
 
       if (!imgSrc.startsWith("https://") && !imgSrc.startsWith("http://")) {
         imgSrc = getAbsolutePath(imgSrc, inputUrl).href;
@@ -400,6 +444,7 @@ async function processJss(htmlData, inputUrl) {
     try {
       let scriptSrc = scriptElement.getAttribute("src");
       if (!scriptSrc) continue;
+      if (isSkippableAssetUrl(scriptSrc)) continue;
 
       if (!scriptSrc.startsWith("https://") && !scriptSrc.startsWith("http://")) {
         scriptSrc = getAbsolutePath(scriptSrc, inputUrl).href;
@@ -436,7 +481,8 @@ async function processVideos(htmlData, inputUrl) {
   for (let videoElement of videoElements) {
     try {
       let videoSrc = videoElement.getAttribute("src");
-      if (!videoSrc || videoSrc.startsWith("data:")) continue;
+      if (!videoSrc) continue;
+      if (isSkippableAssetUrl(videoSrc)) continue;
 
       if (!videoSrc.startsWith("https://") && !videoSrc.startsWith("http://")) {
         videoSrc = getAbsolutePath(videoSrc, inputUrl).href;
@@ -490,10 +536,25 @@ async function processLinks() {
 
   if (maxDepthValue == 1) {
     updateStatus(
-      "Foreground crawl is running. Saving the starting page and first-level linked pages."
+      depthOneMode === "manual"
+        ? "Foreground crawl is running. Saving selected linked pages."
+        : "Foreground crawl is running. Saving the starting page and first-level linked pages."
     );
 
-    let urls = await getForegroundLinks(currentPage);
+    let urls;
+
+    if (depthOneMode === "manual" && selectedManualLinks.length > 0) {
+      urls = new Set(
+        selectedManualLinks.filter(
+          (url) =>
+            url &&
+            !url.startsWith("javascript:") &&
+            !url.startsWith("about:")
+        )
+      );
+    } else {
+      urls = await getForegroundLinks(currentPage);
+    }
 
     const savedPagesMap = new Map();
     savedPagesMap.set(currentPage, getTitle(currentPage) + ".html");
@@ -513,7 +574,11 @@ async function processLinks() {
 
     for (let url of urls) {
       try {
-        updateStatus("Foreground crawl is running. Saving linked pages...");
+        updateStatus(
+          depthOneMode === "manual"
+            ? "Foreground crawl is running. Saving selected linked pages."
+            : "Foreground crawl is running. Saving linked pages..."
+        );
 
         let html = await processHTML(url, "", savedPagesMap, false);
         zip.file("html/" + getTitle(url) + ".html", html);
