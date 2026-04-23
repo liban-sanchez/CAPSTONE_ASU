@@ -110,8 +110,8 @@ function openWindow() {
     location=no,
     toolbar=no,
     menubar=no,
-    width=355,
-    height=275,
+    width=340,
+    height=350,
     left=100,
     top=100,
     dependent=yes

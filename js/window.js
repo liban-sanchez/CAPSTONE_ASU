@@ -21,6 +21,9 @@ feedbackFormSection.style.display = "none";
 const progressBar = document.getElementById("progress-bar");
 const currentProgress = document.getElementById("current-progress");
 const statusMessage = document.getElementById("status-message");
+const FIXED_WINDOW_WIDTH = 430;
+const FIXED_WINDOW_HEIGHT = 520;
+
 
 const setDownloadFlag = (isDownloading) => {
   chrome.storage.sync.set({ downloadFlag: isDownloading });
@@ -582,4 +585,43 @@ async function startScrapingProcess() {
     updateStatus("Download failed. Check the console for details.");
     setDownloadFlag(false);
   }
+  /* NEW: Prevent resizing by snapping back */
+window.addEventListener("resize", () => {
+  window.resizeTo(340, 350);
+});
+/* NEW: Block fullscreen key */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "F11") {
+    e.preventDefault();
+  }
+});
+/* NEW: Block fullscreen key */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "F11") {
+    e.preventDefault();
+  }
+});
+/* NEW: Try to snap the popup back if the user resizes or fullscreen-changes it. */
+function enforceWindowSize() {
+  try {
+    window.resizeTo(FIXED_WINDOW_WIDTH, FIXED_WINDOW_HEIGHT);
+  } catch (error) {
+    console.warn("Unable to resize popup window:", error);
+  }
+}
+
+/* NEW: Run once after load so the popup starts at the intended size. */
+window.addEventListener("load", () => {
+  enforceWindowSize();
+});
+
+/* NEW: If the popup is resized, try to return it to the fixed dimensions. */
+window.addEventListener("resize", () => {
+  enforceWindowSize();
+});
+
+/* NEW: Catch fullscreen state changes and try to return to the fixed popup size. */
+document.addEventListener("fullscreenchange", () => {
+  enforceWindowSize();
+});
 }

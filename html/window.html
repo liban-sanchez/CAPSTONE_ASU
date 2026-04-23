@@ -24,32 +24,42 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../css/styles.css" />
   </head>
-  <body class="py-2 px-3 me-0">
-    <!-- Header Section -->
-    <header class="text-white text-center bg-secondary rounded py-2 px-2 mb-3">
-      <h3 class="mb-0">
-        Foreground crawl is running. Please keep this window open while the active tab is being processed.
-      </h3>
-    </header>
+  <body class="py-2 px-2 me-0">
+ <!-- Header Section -->
+<section class="gb-card gb-hero p-3 mb-3 text-center">
+  <!-- NEW: cleaner header instead of heavy gray bar -->
+  <h5 class="fw-bold mb-1">
+    Foreground Crawl Running
+  </h5>
 
-    <!-- Main Content Section -->
-    <main class="container">
-      <!-- Progress Bar Section -->
-      <section class="progress-bar-section">
-        <div class="progress-bar-wrapper">
-          <div
-            id="progress-bar"
-            class="progress-bar progress-bar-striped progress-bar-animated"
-            role="progressbar"
-            aria-valuenow="0"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            style="width: 0%;"
-          >
-            <span id="current-progress"></span>
-          </div>
-        </div>
-      </section>
+  <div class="small text-muted">
+    Please keep this window open while processing.
+  </div>
+</section>
+
+   <!-- Progress Section -->
+<section class="gb-card p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="gb-section-title">Progress</div>
+
+    <!-- NEW: percentage text -->
+    <div id="current-progress" class="small fw-semibold text-muted"></div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="gb-progress-wrap">
+    <div
+      id="progress-bar"
+      class="progress-bar progress-bar-striped progress-bar-animated"
+      role="progressbar"
+      style="width: 0%;"
+    ></div>
+  </div>
+
+  <!-- Existing status message -->
+  <div id="status-message" class="text-center text-muted small mt-3">
+    Foreground crawl is running.
+  </div>
 
       <!-- Status Message Section -->
       <section class="mt-2">
@@ -58,19 +68,22 @@
         </div>
       </section>
 
-      <!-- Feedback Form Section -->
-      <section id="feedback-form-section" class="mt-3" style="display: none;">
-        <div class="text-center">
-          Foreground crawl complete. Your download is ready.
-          <a
-            class="btn btn-secondary btn-sm mt-1"
-            href="https://forms.gle/p6quKSCDj5PoyVb37"
-            target="_blank"
-          >
-            Please provide feedback
-          </a>
-        </div>
-      </section>
+  <!-- Feedback Section -->
+  <section id="feedback-form-section" class="mt-3" style="display: none;">
+    <div class="text-center">
+      <!-- Existing text -->
+      Foreground crawl complete. Your download is ready.
+
+      <!-- Existing button -->
+      <a
+        class="btn btn-secondary btn-sm mt-2"
+        href="https://forms.gle/p6quKSCDj5PoyVb37"
+        target="_blank"
+      >
+        Please provide feedback
+      </a>
+    </div>
+  </section>
     </main>
 
     <!-- JS Scripts -->
