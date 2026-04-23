@@ -34,10 +34,12 @@ depthMode.addEventListener("change", (e) => {
 
 focusMode.addEventListener("change", (e) => {
   isFocusMode = Boolean(e.target.checked);
+  chrome.storage.sync.set({ isFocusMode: isFocusMode }); // Saves to browser state
 });
 
 restrictDomain.addEventListener("change", (e) => {
   isRestrictDomain = Boolean(e.target.checked);
+  chrome.storage.sync.set({ isRestrictDomain: isRestrictDomain }); // Saves to browser state
 });
 
 if (depthOneAllLinks) {
@@ -235,12 +237,25 @@ async function scanLinksFromCurrentPage() {
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId: sourceTabId },
-      args: [Boolean(isRestrictDomain), String(currentPage || "")],
-      func: (restrictDomain, rootPage) => {
+      // Pass the Focus Mode state into the injected script
+      args: [Boolean(isRestrictDomain), String(currentPage || ""), Boolean(isFocusMode)],
+      func: (restrictDomain, rootPage, focusMode) => {
         const collected = [];
         const seen = new Set();
 
-        for (const anchor of document.querySelectorAll("a[href]")) {
+        // FOCUS MODE LITE: If enabled, restrict our search to the main article body
+        let searchScope = document;
+        if (focusMode) {
+          searchScope = document.querySelector('article') ||
+                        document.querySelector('main') ||
+                        document.querySelector('[role="main"]') ||
+                        document.querySelector('.post-content') ||
+                        document.querySelector('.entry-content') ||
+                        document; // fallback to whole document if no clear tag is found
+        }
+
+        // Search for links ONLY within the defined scope
+        for (const anchor of searchScope.querySelectorAll("a[href]")) {
           const rawHref = anchor.getAttribute("href");
           const absolute = anchor.href;
           const text = (anchor.textContent || "").trim().replace(/\s+/g, " ");
@@ -274,17 +289,17 @@ async function scanLinksFromCurrentPage() {
           });
         }
 
-        return collected.slice(0, 50); // keep popup manageable
+        return collected;
       }
     });
 
-    scannedLinks =
-      results && results[0] && Array.isArray(results[0].result)
-        ? results[0].result
-        : [];
+    const collectedLinks = results && results[0] && Array.isArray(results[0].result) ? results[0].result : [];
 
+    // Keep popup manageable by slicing top 50
+    scannedLinks = collectedLinks.slice(0, 50);
     selectedManualLinks = [];
     renderManualLinks();
+
   } catch (error) {
     console.error("Error scanning links:", error);
 

@@ -25,8 +25,8 @@ feedbackFormSection.style.display = "none";
 const progressBar = document.getElementById("progress-bar");
 const currentProgress = document.getElementById("current-progress");
 const statusMessage = document.getElementById("status-message");
-const FIXED_WINDOW_WIDTH = 430;
-const FIXED_WINDOW_HEIGHT = 520;
+const FIXED_WINDOW_WIDTH = 360;
+const FIXED_WINDOW_HEIGHT = 450;
 
 
 const setDownloadFlag = (isDownloading) => {
@@ -397,42 +397,52 @@ async function processPdfs(htmlData, inputUrl) {
   return doc.documentElement.outerHTML;
 }
 
-async function processImages(htmlData, inputUrl) {
+async function processImages(htmlData, inputUrl, isRootPage = false) {
   const parser = new DOMParser();
   let doc = parser.parseFromString(htmlData, "text/html");
 
   const imgElements = doc.querySelectorAll("img");
+  zip.folder("img");
 
   for (let imgElement of imgElements) {
     try {
-      let imgSrc = imgElement.getAttribute("src");
-      if (imgSrc === null || imgSrc.includes("base64")) continue;
-      if (isSkippableAssetUrl(imgSrc)) continue;
+      imgElement.removeAttribute("srcset");
+      imgElement.removeAttribute("data-srcset");
+      imgElement.removeAttribute("sizes");
 
-      if (!imgSrc.startsWith("https://") && !imgSrc.startsWith("http://")) {
-        imgSrc = getAbsolutePath(imgSrc, inputUrl).href;
+      let imgSrc = imgElement.getAttribute("src") || imgElement.getAttribute("data-src");
+      if (!imgSrc || imgSrc.includes("base64")) continue;
+
+      if (imgSrc.startsWith("//")) {
+        imgSrc = "https:" + imgSrc;
+      } else if (!imgSrc.startsWith("https://") && !imgSrc.startsWith("http://")) {
+        imgSrc = new URL(imgSrc, inputUrl).href;
       }
 
-      let imageName = imgSrc
-        .substring(imgSrc.lastIndexOf("/") + 1)
-        .replace(/[&\/\\#,+()$~%'":*?<>{}]/g, "");
+      let imageName = getSafeFilename(imgSrc, "png");
 
       if (!urlImages.includes(imageName)) {
         urlImages.push(imageName);
-
-        const imageData = await urlToPromise(imgSrc);
-        zip.file("img/" + imageName, imageData, { binary: true });
+        console.log("⬇Attempting to download:", imgSrc);
+        try {
+          const imageData = await urlToPromise(imgSrc);
+          zip.file("img/" + imageName, imageData, { binary: true });
+        } catch (fetchErr) {
+          console.error("Download Failed:", imgSrc, fetchErr);
+        }
       }
 
-      let imgFolderLocation = maxDepthValue === 0 ? "img/" : "../img/";
+      let imgFolderLocation = (maxDepthValue === 0 || isRootPage) ? "img/" : "../img/";
       imgElement.setAttribute("src", imgFolderLocation + imageName);
+      
     } catch (error) {
-      console.error("Image processing error:", error);
+      console.error("Image loop error:", error);
     }
   }
 
   return doc.documentElement.outerHTML;
 }
+
 
 async function processJss(htmlData, inputUrl) {
   const parser = new DOMParser();
@@ -512,6 +522,15 @@ async function processVideos(htmlData, inputUrl) {
 async function processHTML(inputUrl, html = "", savedPagesMap = null, isRootPage = false) {
   let htmlData = html === "" ? await getForegroundPageHtml(inputUrl) : html;
 
+  if (isFocusMode) {
+    try {
+     // added await to avoid object promise
+      htmlData = await applyFocusMode(htmlData, inputUrl);
+    } catch (err) {
+      console.error("Focus Mode crashed.. using original HTML.", err);
+    }
+  }
+
   htmlData = await processImages(htmlData, inputUrl);
   htmlData = await processPdfs(htmlData, inputUrl);
   htmlData = await processCSSAndImages(htmlData, inputUrl);
@@ -543,6 +562,7 @@ async function processLinks() {
 
     let urls;
 
+    // Combined focus mode with manual links logic
     if (depthOneMode === "manual" && selectedManualLinks.length > 0) {
       urls = new Set(
         selectedManualLinks.filter(
@@ -552,6 +572,11 @@ async function processLinks() {
             !url.startsWith("about:")
         )
       );
+    } else if (isFocusMode) {
+      updateStatus("Applying Focus Mode to find valid article links...");
+      let rawHtml = await getForegroundPageHtml(currentPage);
+      let focusedHtml = await applyFocusMode(rawHtml, currentPage);
+      urls = extractLinksFromHtml(focusedHtml, currentPage, isRestrictDomain);
     } else {
       urls = await getForegroundLinks(currentPage);
     }
@@ -650,23 +675,116 @@ async function startScrapingProcess() {
     updateStatus("Download failed. Check the console for details.");
     setDownloadFlag(false);
   }
-  /* NEW: Prevent resizing by snapping back */
-window.addEventListener("resize", () => {
-  window.resizeTo(340, 350);
-});
-/* NEW: Block fullscreen key */
-window.addEventListener("keydown", (e) => {
-  if (e.key === "F11") {
-    e.preventDefault();
+}
+
+/**
+ * Uses Mozilla's Readability library to extract the main content,
+ * then injects it into a local HTML template.
+ */
+async function applyFocusMode(htmlData, inputUrl) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlData, "text/html");
+
+  doc.querySelectorAll("a[href]").forEach(anchor => {
+    try {
+      let rawHref = anchor.getAttribute("href");
+      if (rawHref && !rawHref.startsWith("http") && !rawHref.startsWith("mailto:") && !rawHref.startsWith("tel:") && !rawHref.startsWith("#")) {
+        let absoluteUrl = new URL(rawHref, inputUrl).href;
+        anchor.setAttribute("href", absoluteUrl);
+      }
+    } catch (e) {}
+  });
+
+  doc.querySelectorAll("img[src], video[src], source[src]").forEach(media => {
+    try {
+      let rawSrc = media.getAttribute("src");
+      if (rawSrc && !rawSrc.startsWith("http") && !rawSrc.startsWith("data:")) {
+        if (rawSrc.startsWith("//")) {
+          media.setAttribute("src", "https:" + rawSrc);
+        } else {
+          let absoluteUrl = new URL(rawSrc, inputUrl).href;
+          media.setAttribute("src", absoluteUrl);
+        }
+      }
+    } catch (e) {}
+  });
+
+  const reader = new Readability(doc);
+  const article = reader.parse();
+
+  if (!article || !article.content) {
+    console.warn("Focus Mode: Readability could not parse the page.. Saving original");
+    return htmlData;
   }
-});
-/* NEW: Block fullscreen key */
-window.addEventListener("keydown", (e) => {
-  if (e.key === "F11") {
-    e.preventDefault();
+
+  console.log("Successfully found the article content");
+
+  const templateRes = await fetch("../html/template.html");
+  let cleanHtml = await templateRes.text();
+
+  const safeTitle = article.title || 'Saved Page';
+  const safeByline = article.byline ? `<div class="byline">${article.byline}</div>` : '';
+
+  cleanHtml = cleanHtml.replace(/{{TITLE}}/g, safeTitle);
+  cleanHtml = cleanHtml.replace('{{BYLINE}}', safeByline);
+  cleanHtml = cleanHtml.replace('{{CONTENT}}', article.content);
+
+  return cleanHtml;
+}
+
+/**
+ * Extracts links from an HTML string
+ * Used specifically for when other links become unclickable in focus mode
+ */
+function extractLinksFromHtml(htmlData, rootPage, restrictDomain) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlData, "text/html");
+  const links = [];
+
+  for (const anchor of doc.querySelectorAll("a[href]")) {
+    const href = anchor.getAttribute("href");
+    if (!href) continue;
+    if (href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("#")) continue;
+
+    try {
+      const absoluteUrl = new URL(href, rootPage).href;
+
+      if (restrictDomain) {
+        const startHost = new URL(rootPage).hostname;
+        const linkHost = new URL(absoluteUrl).hostname;
+        if (startHost !== linkHost) continue;
+      }
+
+      if (!links.includes(absoluteUrl)) {
+        links.push(absoluteUrl);
+      }
+    } catch (e) {
+      continue;
+    }
   }
-});
-/* NEW: Try to snap the popup back if the user resizes or fullscreen-changes it. */
+
+  return new Set(links);
+}
+
+/**
+ * Extracts filename from URL so that names arent too long in file explorer.
+ */
+function getSafeFilename(url, defaultExt = "file") {
+  let cleanUrl = url.split('?')[0].split('#')[0];
+  let filename = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
+  filename = filename.replace(/[^a-zA-Z0-9.\-_]/g, "");
+
+  if (filename.length > 100) {
+    filename = filename.substring(filename.length - 100);
+  }
+
+  if (!filename) {
+    filename = "asset_" + Math.floor(Math.random() * 100000) + "." + defaultExt;
+  }
+  return filename;
+}
+
+/* Try to snap the popup back if the user resizes or fullscreen-changes it. */
 function enforceWindowSize() {
   try {
     window.resizeTo(FIXED_WINDOW_WIDTH, FIXED_WINDOW_HEIGHT);
@@ -675,18 +793,24 @@ function enforceWindowSize() {
   }
 }
 
-/* NEW: Run once after load so the popup starts at the intended size. */
+/* Run once after load so the popup starts at the intended size. */
 window.addEventListener("load", () => {
   enforceWindowSize();
 });
 
-/* NEW: If the popup is resized, try to return it to the fixed dimensions. */
+/* Prevent resizing by snapping back */
 window.addEventListener("resize", () => {
   enforceWindowSize();
 });
 
-/* NEW: Catch fullscreen state changes and try to return to the fixed popup size. */
+/* Catch fullscreen state changes and try to return to the fixed popup size. */
 document.addEventListener("fullscreenchange", () => {
   enforceWindowSize();
 });
-}
+
+/* Block fullscreen key */
+window.addEventListener("keydown", (e) => {
+  if (e.key === "F11") {
+    e.preventDefault();
+  }
+});
