@@ -15,12 +15,17 @@
   "tabs",
   "downloads",
   "scripting",
-  "activeTab"
+  "activeTab",
+  "contextMenus"
 ],
 
   "host_permissions": [
     "<all_urls>"
   ],
+
+  "background": {
+    "service_worker": "js/background.js"
+  },
 
   "action": {
     "default_popup": "html/popup.html"
