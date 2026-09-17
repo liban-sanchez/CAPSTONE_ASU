@@ -18,6 +18,37 @@ const depthMode =
 
 
 // ============================================================
+// DOWNLOAD OPTIONS MODAL
+// ============================================================
+
+const downloadOptionsModalElement =
+  document.getElementById("download-options-modal");
+
+const startDownloadButton =
+  document.getElementById("start-download-button");
+
+const downloadOptionsPage =
+  document.getElementById("download-options-page");
+
+
+/*
+ * When the user picks "Download this page" from the
+ * right-click menu, background.js saves the clicked
+ * tab here and opens this extension popup.
+ *
+ * { tabId: 123, createdAt: 1710000000000 }
+ */
+const CONTEXT_MENU_LAUNCH_KEY =
+  "pendingContextMenuDownload";
+
+const CONTEXT_MENU_LAUNCH_MAX_AGE_MS =
+  10000;
+
+let isContextMenuLaunch =
+  false;
+
+
+// ============================================================
 // LOCAL VIDEO IMPORT
 // ============================================================
 
@@ -458,29 +489,118 @@ if (clearAllLinksButton) {
 // ============================================================
 
 /**
- * Capture the current active tab
- * and source tab ID.
+ * Read and clear a right-click launch
+ * saved by background.js, if any.
  */
-chrome.tabs.query(
-  {
-    currentWindow: true,
-    active: true
-  },
-  (tabs) => {
+async function takeContextMenuLaunch() {
 
-    if (
-      tabs &&
-      tabs.length > 0
-    ) {
+  try {
+
+    const items =
+      await chrome.storage.session.get(
+        CONTEXT_MENU_LAUNCH_KEY
+      );
+
+    const launch =
+      items[CONTEXT_MENU_LAUNCH_KEY];
+
+
+    if (!launch) {
+      return null;
+    }
+
+
+    await chrome.storage.session.remove(
+      CONTEXT_MENU_LAUNCH_KEY
+    );
+
+
+    const isFresh =
+      Date.now() - Number(launch.createdAt || 0) <
+      CONTEXT_MENU_LAUNCH_MAX_AGE_MS;
+
+
+    return isFresh &&
+      Number.isInteger(launch.tabId)
+      ? launch
+      : null;
+
+  } catch (error) {
+
+    console.warn(
+      "Could not read right-click launch:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+/**
+ * Capture the source tab and its URL.
+ *
+ * From the toolbar button this is the active tab.
+ * From the right-click menu it is the tab that
+ * was right-clicked.
+ */
+async function resolveSourceTab() {
+
+  const launch =
+    await takeContextMenuLaunch();
+
+
+  if (launch) {
+
+    try {
+
+      const tab =
+        await chrome.tabs.get(launch.tabId);
 
       currentPage =
-        tabs[0].url ?? "";
+        tab.url ?? "";
 
       sourceTabId =
-        tabs[0].id ?? null;
+        tab.id ?? null;
+
+      isContextMenuLaunch =
+        true;
+
+      return;
+
+    } catch (error) {
+
+      console.warn(
+        "Right-clicked tab is no longer available:",
+        error
+      );
     }
   }
-);
+
+
+  const tabs =
+    await chrome.tabs.query({
+      currentWindow: true,
+      active: true
+    });
+
+
+  if (
+    tabs &&
+    tabs.length > 0
+  ) {
+
+    currentPage =
+      tabs[0].url ?? "";
+
+    sourceTabId =
+      tabs[0].id ?? null;
+  }
+}
+
+
+const sourceTabReady =
+  resolveSourceTab();
 
 
 // ============================================================
@@ -1114,6 +1234,21 @@ document.addEventListener(
 
 
     openWindow();
+
+
+    /*
+     * Right-click launch: go straight
+     * to the download options.
+     */
+    sourceTabReady.then(
+      () => {
+
+        if (isContextMenuLaunch) {
+
+          openDownloadOptions();
+        }
+      }
+    );
   }
 );
 
@@ -1124,8 +1259,152 @@ document.addEventListener(
 
 submitButton.addEventListener(
   "click",
-  checkDownloadFlag
+  openDownloadOptions
 );
+
+
+submitButton.addEventListener(
+  "keydown",
+  (e) => {
+
+    if (
+      e.key === "Enter" ||
+      e.key === " "
+    ) {
+
+      e.preventDefault();
+
+      openDownloadOptions();
+    }
+  }
+);
+
+
+if (startDownloadButton) {
+
+  startDownloadButton.addEventListener(
+    "click",
+    checkDownloadFlag
+  );
+}
+
+
+/**
+ * Bootstrap modal instance for
+ * the download options.
+ */
+function getDownloadOptionsModal() {
+
+  if (
+    !downloadOptionsModalElement ||
+    typeof bootstrap === "undefined"
+  ) {
+    return null;
+  }
+
+
+  return bootstrap.Modal.getOrCreateInstance(
+    downloadOptionsModalElement
+  );
+}
+
+
+function hideDownloadOptionsModal() {
+
+  const modal =
+    getDownloadOptionsModal();
+
+
+  if (modal) {
+    modal.hide();
+  }
+}
+
+
+function showDownloadInProgressToast() {
+
+  const toast =
+    new bootstrap.Toast(
+      $("#toast")
+    );
+
+
+  toast.show();
+}
+
+
+/**
+ * Show the page being downloaded
+ * in the options header.
+ */
+function updateDownloadOptionsPageLabel() {
+
+  if (!downloadOptionsPage) {
+    return;
+  }
+
+
+  let label =
+    currentPage || "Current page";
+
+
+  try {
+
+    const url =
+      new URL(currentPage);
+
+    label =
+      url.hostname + url.pathname;
+
+  } catch (error) {
+    // Keep the raw value.
+  }
+
+
+  downloadOptionsPage.textContent =
+    label;
+
+  downloadOptionsPage.title =
+    currentPage || "";
+}
+
+
+/**
+ * Opens the download options popup.
+ * If a crawl is already running,
+ * shows the in-progress toast instead.
+ */
+async function openDownloadOptions() {
+
+  await sourceTabReady;
+
+
+  chrome.storage.sync.get(
+    (items) => {
+
+      if (items.downloadFlag) {
+
+        showDownloadInProgressToast();
+
+        return;
+      }
+
+
+      updateDownloadOptionsPageLabel();
+
+      updateDepthOneUI();
+
+
+      const modal =
+        getDownloadOptionsModal();
+
+
+      if (modal) {
+        modal.show();
+      }
+    }
+  );
+}
 
 
 /**
@@ -1175,6 +1454,9 @@ function checkDownloadFlag() {
         }
 
 
+        hideDownloadOptionsModal();
+
+
         const buttonTitle =
           document.getElementById(
             "button-title"
@@ -1192,13 +1474,9 @@ function checkDownloadFlag() {
 
       } else {
 
-        const toast =
-          new bootstrap.Toast(
-            $("#toast")
-          );
+        hideDownloadOptionsModal();
 
-
-        toast.show();
+        showDownloadInProgressToast();
       }
     }
   );
