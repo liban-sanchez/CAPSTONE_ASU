@@ -49,6 +49,179 @@ let isContextMenuLaunch =
 
 
 // ============================================================
+// HOVER TIPS
+// ============================================================
+
+/*
+ * Long descriptions were replaced by small "i" badges.
+ * Hovering (or focusing) a badge shows its text.
+ *
+ * Bootstrap's own tooltips are not used because the bundled
+ * Bootstrap file does not include Popper.
+ */
+
+let activeHoverTip = null;
+
+
+function showHoverTip(badge) {
+
+  hideHoverTip();
+
+
+  const text =
+    badge.getAttribute("title") ||
+    badge.dataset.gbTip ||
+    "";
+
+
+  if (!text) {
+    return;
+  }
+
+
+  /*
+   * Move the text out of "title" so the browser
+   * does not also show its own tooltip.
+   */
+  badge.dataset.gbTip = text;
+
+  badge.removeAttribute("title");
+
+
+  const tip =
+    document.createElement("div");
+
+  tip.className =
+    "gb-tip";
+
+  tip.textContent =
+    text;
+
+  document.body.appendChild(tip);
+
+
+  const badgeBox =
+    badge.getBoundingClientRect();
+
+  const tipBox =
+    tip.getBoundingClientRect();
+
+  const margin = 6;
+
+
+  let left =
+    badgeBox.left +
+    (badgeBox.width / 2) -
+    (tipBox.width / 2);
+
+
+  left = Math.max(
+    margin,
+    Math.min(
+      left,
+      document.documentElement.clientWidth - tipBox.width - margin
+    )
+  );
+
+
+  let top =
+    badgeBox.top - tipBox.height - margin;
+
+
+  /*
+   * Not enough room above, so show it below.
+   */
+  if (top < margin) {
+
+    top = badgeBox.bottom + margin;
+  }
+
+
+  tip.style.left = left + "px";
+
+  tip.style.top = top + "px";
+
+
+  activeHoverTip = tip;
+}
+
+
+function hideHoverTip() {
+
+  if (activeHoverTip) {
+
+    activeHoverTip.remove();
+
+    activeHoverTip = null;
+  }
+}
+
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    const badges =
+      document.querySelectorAll(".gb-info");
+
+
+    badges.forEach(
+      (badge) => {
+
+        badge.addEventListener(
+          "mouseenter",
+          () => showHoverTip(badge)
+        );
+
+        badge.addEventListener(
+          "focus",
+          () => showHoverTip(badge)
+        );
+
+        badge.addEventListener(
+          "mouseleave",
+          hideHoverTip
+        );
+
+        badge.addEventListener(
+          "blur",
+          hideHoverTip
+        );
+
+
+        /*
+         * Some badges sit inside labels, so a click
+         * should not toggle the option behind them.
+         */
+        badge.addEventListener(
+          "click",
+          (e) => e.preventDefault()
+        );
+      }
+    );
+
+
+    window.addEventListener(
+      "scroll",
+      hideHoverTip,
+      true
+    );
+
+
+    document.addEventListener(
+      "keydown",
+      (e) => {
+
+        if (e.key === "Escape") {
+          hideHoverTip();
+        }
+      }
+    );
+  }
+);
+
+
+// ============================================================
 // LOCAL VIDEO IMPORT
 // ============================================================
 
@@ -1219,9 +1392,7 @@ document.addEventListener(
   "DOMContentLoaded",
   () => {
 
-    setDownloadFlag(
-      false
-    );
+    clearStaleDownloadFlag();
 
 
     fillOptions();
@@ -1233,7 +1404,10 @@ document.addEventListener(
     updateLocalVideoStatus();
 
 
-    openWindow();
+    restoreProgress();
+
+
+    listenForProgress();
 
 
     /*
@@ -1470,7 +1644,7 @@ function checkDownloadFlag() {
         }
 
 
-        sendToWindowInstance();
+        startCrawl();
 
       } else {
 
@@ -1551,47 +1725,361 @@ function sendToWindowInstance() {
 
 
 // ============================================================
-// PROGRESS WINDOW
+// CRAWL WORKER TAB
 // ============================================================
 
-/**
- * Open the separate
- * scraper progress window.
+/*
+ * The crawling, zipping and downloading run in
+ * html/window.html, which needs a real page to
+ * use DOMParser and the Chrome tab APIs.
+ *
+ * It used to open as a separate pop-up window.
+ * It is now a background tab in the same browser
+ * window, and progress is shown in this popup.
  */
-function openWindow() {
 
-  let params = `
-    scrollbars=no,
-    resizable=no,
-    status=no,
-    location=no,
-    toolbar=no,
-    menubar=no,
-    width=340,
-    height=350,
-    left=100,
-    top=100,
-    dependent=yes
-  `;
+const WORKER_PAGE_URL =
+  chrome.runtime.getURL("html/window.html");
 
 
-  let popupWindow =
-    window.open(
-      "../html/window.html",
-      "scraper_window",
-      params
-    );
+/**
+ * A crawl now keeps running after the popup
+ * closes, so the "already running" flag is only
+ * cleared when no worker tab is left.
+ */
+async function clearStaleDownloadFlag() {
+
+  try {
+
+    const tabs =
+      await chrome.tabs.query({
+        url: WORKER_PAGE_URL
+      });
+
+
+    if (
+      !tabs ||
+      tabs.length === 0
+    ) {
+
+      setDownloadFlag(false);
+    }
+
+  } catch (error) {
+
+    setDownloadFlag(false);
+  }
+}
+
+
+/**
+ * Find the worker tab, or open it
+ * in the background if it is not
+ * running yet.
+ */
+async function ensureWorkerTab() {
+
+  const existing =
+    await chrome.tabs.query({
+      url: WORKER_PAGE_URL
+    });
 
 
   if (
-    !popupWindow ||
-    popupWindow.closed ||
-    typeof popupWindow.closed ===
-      "undefined"
+    existing &&
+    existing.length > 0
   ) {
+    return existing[0];
+  }
 
-    alert(
-      "Please allow pop-ups for this website in order to download it."
+
+  return chrome.tabs.create({
+    url: WORKER_PAGE_URL,
+    active: false
+  });
+}
+
+
+/**
+ * Wait until the worker tab answers,
+ * so the settings are not sent before
+ * anything is listening.
+ */
+function waitForWorkerTab(timeoutMs = 8000) {
+
+  return new Promise(
+    (resolve) => {
+
+      const startedAt =
+        Date.now();
+
+
+      function onMessage(event) {
+
+        if (
+          event.data &&
+          event.data.type === "worker-ready"
+        ) {
+
+          cleanUp();
+
+          resolve(true);
+        }
+      }
+
+
+      function cleanUp() {
+
+        clearInterval(pingTimer);
+
+        broadcastChannel.removeEventListener(
+          "message",
+          onMessage
+        );
+      }
+
+
+      broadcastChannel.addEventListener(
+        "message",
+        onMessage
+      );
+
+
+      const pingTimer =
+        setInterval(
+          () => {
+
+            if (
+              Date.now() - startedAt >
+              timeoutMs
+            ) {
+
+              cleanUp();
+
+              resolve(false);
+
+              return;
+            }
+
+
+            broadcastChannel.postMessage({
+              type: "worker-ping"
+            });
+          },
+          200
+        );
+
+
+      broadcastChannel.postMessage({
+        type: "worker-ping"
+      });
+    }
+  );
+}
+
+
+/**
+ * Open the worker tab if needed,
+ * then hand it the crawl settings.
+ */
+async function startCrawl() {
+
+  updatePopupStatus(
+    "Starting..."
+  );
+
+
+  try {
+
+    await ensureWorkerTab();
+
+  } catch (error) {
+
+    console.error(
+      "Could not start the download tab:",
+      error
+    );
+
+
+    updatePopupStatus(
+      "Could not start the download. Please try again."
+    );
+
+    setDownloadFlag(false);
+
+    return;
+  }
+
+
+  const isReady =
+    await waitForWorkerTab();
+
+
+  if (!isReady) {
+
+    updatePopupStatus(
+      "The download tab did not respond. Please try again."
+    );
+
+    setDownloadFlag(false);
+
+    return;
+  }
+
+
+  sendToWindowInstance();
+}
+
+
+// ============================================================
+// PROGRESS IN THE POPUP
+// ============================================================
+
+/*
+ * The worker tab reports progress on this channel.
+ * The popup closes whenever the user clicks away,
+ * so the last update is also kept in storage and
+ * restored the next time the popup opens.
+ */
+const progressChannel =
+  new BroadcastChannel("scraper_progress");
+
+
+const popupProgressBar =
+  document.getElementById("progress-bar");
+
+const popupProgressText =
+  document.getElementById("current-progress");
+
+const popupStatus =
+  document.getElementById("popup-status");
+
+
+function updatePopupProgress(percentage) {
+
+  const value =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(percentage) || 0
+      )
+    );
+
+
+  if (popupProgressBar) {
+
+    popupProgressBar.style.width =
+      value + "%";
+
+    popupProgressBar.setAttribute(
+      "aria-valuenow",
+      String(value)
     );
   }
+
+
+  if (popupProgressText) {
+
+    popupProgressText.innerText =
+      value + "%";
+  }
+}
+
+
+function updatePopupStatus(message) {
+
+  if (popupStatus) {
+
+    popupStatus.innerText =
+      message;
+  }
+}
+
+
+/**
+ * Show whatever the worker tab
+ * reported while the popup was closed.
+ */
+function restoreProgress() {
+
+  chrome.storage.local.get(
+    "lastProgress",
+    (items) => {
+
+      const last =
+        items.lastProgress;
+
+
+      if (!last) {
+        return;
+      }
+
+
+      updatePopupProgress(
+        last.percentage
+      );
+
+
+      updatePopupStatus(
+        last.message ||
+        "Waiting to start"
+      );
+
+
+      const buttonTitle =
+        document.getElementById(
+          "button-title"
+        );
+
+
+      if (
+        last.isRunning &&
+        buttonTitle
+      ) {
+
+        buttonTitle.innerText =
+          "Foreground Crawl Running...";
+      }
+    }
+  );
+}
+
+
+/**
+ * Live updates while the popup is open.
+ */
+function listenForProgress() {
+
+  progressChannel.addEventListener(
+    "message",
+    (event) => {
+
+      const update =
+        event.data;
+
+
+      if (!update) {
+        return;
+      }
+
+
+      if (
+        typeof update.percentage === "number"
+      ) {
+
+        updatePopupProgress(
+          update.percentage
+        );
+      }
+
+
+      if (update.message) {
+
+        updatePopupStatus(
+          update.message
+        );
+      }
+    }
+  );
 }

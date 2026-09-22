@@ -8,8 +8,29 @@ export const progressBar = document.getElementById("progress-bar");
 export const currentProgress = document.getElementById("current-progress");
 export const statusMessage = document.getElementById("status-message");
 
-const FIXED_WINDOW_WIDTH = 360;
-const FIXED_WINDOW_HEIGHT = 450;
+/**
+ * The popup shows the same progress, so every update is
+ * broadcast to it and stored for the next time it opens.
+ */
+const progressChannel = new BroadcastChannel("scraper_progress");
+
+let lastPercentage = 0;
+
+function reportProgress(percentage, message, isRunning) {
+  const update = {
+    percentage: percentage,
+    message: message,
+    isRunning: isRunning
+  };
+
+  progressChannel.postMessage(update);
+
+  try {
+    chrome.storage.local.set({ lastProgress: update });
+  } catch (error) {
+    console.warn("Could not store progress:", error);
+  }
+}
 
 if (feedbackFormSection) {
   feedbackFormSection.style.display = "none";
@@ -35,6 +56,9 @@ export function updateProgress(currentCount, totalCount) {
     progressBar.style.display = "flex";
     progressBar.style.width = progressPercentage;
   }
+
+  lastPercentage = percentage;
+  reportProgress(percentage, statusMessage ? statusMessage.innerText : "", true);
 }
 
 /**
@@ -45,16 +69,32 @@ export function updateStatus(message) {
   if (statusMessage) {
     statusMessage.innerText = message;
   }
+
+  const isDone = /complete|failed/i.test(message);
+  reportProgress(isDone ? 100 : lastPercentage, message, !isDone);
+
+  if (isDone) {
+    finishPageState(/failed/i.test(message));
+  }
 }
 
 /**
- * Prevents the user from breaking the UI by resizing the popup window.
+ * Switches the crawl tab out of its "in progress" look
+ * once the download is finished or has failed.
  */
 
-export function enforceWindowSize() {
-  try {
-    window.resizeTo(FIXED_WINDOW_WIDTH, FIXED_WINDOW_HEIGHT);
-  } catch (error) {
-    console.warn("Unable to resize popup window:", error);
+function finishPageState(hasFailed) {
+  const title = document.querySelector(".gb-worker-title");
+  if (title) {
+    title.innerText = hasFailed ? "Download failed" : "Offline copy ready";
+  }
+
+  const hint = document.querySelector(".gb-worker-hint");
+  if (hint) {
+    hint.style.display = "none";
+  }
+
+  if (progressBar) {
+    progressBar.classList.remove("progress-bar-animated", "progress-bar-striped");
   }
 }

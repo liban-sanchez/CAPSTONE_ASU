@@ -122,8 +122,12 @@
             <div
               class="small text-muted mt-2 px-2"
             >
-              Choose your download options, then the active browser tab will
-              move page-to-page while your offline copy is prepared.
+              Choose your options, then start
+              <span
+                class="gb-info"
+                tabindex="0"
+                title="The active browser tab moves page-to-page while your offline copy is prepared."
+              >i</span>
             </div>
           </div>
         </section>
@@ -219,8 +223,16 @@
         <div
           class="small text-muted mt-2"
         >
-          The final ZIP file will download after crawling and packaging are
-          complete.
+          <span
+            id="popup-status"
+          >
+            Waiting to start
+          </span>
+          <span
+            class="gb-info"
+            tabindex="0"
+            title="The final ZIP file downloads once crawling and packaging are complete."
+          >i</span>
         </div>
       </section>
 
@@ -244,13 +256,11 @@
           <i
             class="bi bi-camera-video text-muted"
           ></i>
-        </div>
-
-        <div
-          class="small text-muted mb-3"
-        >
-          Select video files already saved on your computer and include them in
-          the final offline ZIP package.
+          <span
+            class="gb-info"
+            tabindex="0"
+            title="Videos already saved on your computer are added to the video/ folder in the final ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
+          >i</span>
         </div>
 
 
@@ -276,12 +286,6 @@
         </div>
 
 
-        <div
-          class="small text-muted mb-2"
-        >
-          Supported examples include MP4, WebM, MOV, M4V, AVI, and MKV.
-        </div>
-
 
         <!-- Selected Video Status -->
 
@@ -296,14 +300,6 @@
           </div>
         </div>
 
-
-        <div
-          class="small text-muted mt-2"
-        >
-          Selected videos will be placed inside the
-          <strong>video/</strong>
-          folder in the downloaded ZIP.
-        </div>
       </section>
 
 
@@ -407,12 +403,6 @@
           <div
             class="modal-body"
           >
-            <div
-              class="small text-muted mb-3"
-            >
-              Set up how this page should be saved, then start the download.
-            </div>
-
             <section
               class="bg-white rounded shadow-sm border p-3"
             >
@@ -436,6 +426,11 @@
                   for="choose-depth-input"
                 >
                   Crawl Depth
+                  <span
+                    class="gb-info"
+                    tabindex="0"
+                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes."
+                  >i</span>
                 </label>
 
                 <input
@@ -447,31 +442,6 @@
                   class="form-control"
                   placeholder="Enter a depth from 0 to 10"
                 />
-
-
-                <div
-                  class="small text-muted mt-2"
-                >
-                  <strong>Depth 0:</strong>
-                  Saves only the current page.
-                </div>
-
-
-                <div
-                  class="small text-muted mt-1"
-                >
-                  <strong>Depth 1:</strong>
-                  Saves the current page and first-level linked pages. You can
-                  either download all valid links or choose the exact links
-                  manually.
-                </div>
-
-
-                <div
-                  class="small text-warning mt-2"
-                >
-                  This process may take up to 10 minutes depending on the website.
-                </div>
               </div>
 
 
@@ -509,13 +479,12 @@
                     for="depth-one-all-links"
                   >
                     Download all first-level links
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Downloads the current page and every valid page it links to."
+                    >i</span>
                   </label>
-
-                  <div
-                    class="small text-muted ms-4"
-                  >
-                    Downloads the current page and every valid page it links to.
-                  </div>
                 </div>
 
 
@@ -537,13 +506,12 @@
                     for="depth-one-manual-links"
                   >
                     Choose links manually
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Scans the page and lets you pick the exact links to download."
+                    >i</span>
                   </label>
-
-                  <div
-                    class="small text-muted ms-4"
-                  >
-                    Scans the page and lets you choose the exact links to download.
-                  </div>
                 </div>
 
 
@@ -563,6 +531,11 @@
                       class="fw-semibold text-dark small"
                     >
                       Select links to download
+                      <span
+                        class="gb-info"
+                        tabindex="0"
+                        title="Scan the current page, then choose which first-level links to include."
+                      >i</span>
                     </div>
 
                     <button
@@ -574,13 +547,6 @@
                     </button>
                   </div>
 
-
-                  <div
-                    class="small text-muted mb-2"
-                  >
-                    Scan the current page and choose which first-level links should
-                    be included in the download.
-                  </div>
 
 
                   <div
@@ -644,23 +610,17 @@
                     >
                       Focus Mode
                     </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Intended to simplify downloaded content.
-                    </div>
                   </div>
 
 
                   <div
                     class="d-flex align-items-center gap-2"
                   >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="This feature has not been fully implemented yet."
-                    ></i>
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Simplifies the downloaded content. Not fully implemented yet."
+                    >i</span>
 
 
                     <div
@@ -691,23 +651,17 @@
                     >
                       Restrict Domain
                     </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Only save pages from the same website domain.
-                    </div>
                   </div>
 
 
                   <div
                     class="d-flex align-items-center gap-2"
                   >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="Recommended when using depth 1."
-                    ></i>
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Only saves pages from the same website domain. Recommended with depth 1."
+                    >i</span>
 
 
                     <div
@@ -738,23 +692,17 @@
                     >
                       Download Multiple URLs
                     </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Queue several websites at once.
-                    </div>
                   </div>
 
 
                   <div
                     class="d-flex align-items-center gap-2"
                   >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="This feature has not been fully implemented yet."
-                    ></i>
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Queues several websites at once. Not fully implemented yet."
+                    >i</span>
 
 
                     <div
@@ -811,9 +759,6 @@
               class="btn btn-primary"
               id="start-download-button"
             >
-              <i
-                class="bi bi-download me-1"
-              ></i>
               Start Download
             </button>
           </div>
