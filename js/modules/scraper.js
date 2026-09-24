@@ -46,15 +46,22 @@ async function processHTML(inputUrl, html = "", savedPagesMap = null, isRootPage
  */
 
 async function processLinks() {
+  const savedPagesMap = new Map();
+
+  // DEPTH 0
   if (state.maxDepthValue == 0) {
     updateStatus("Saving current page...");
+    
+    // Map the single page
+    savedPagesMap.set(state.currentPage, getTitle(state.currentPage) + ".html");
+    
     const html = await processHTML(state.currentPage);
     state.zip.file(getTitle(state.currentPage) + ".html", html);
     updateProgress(1, 1);
-    return;
   }
 
-  if (state.maxDepthValue == 1) {
+  // DEPTH 1
+  else if (state.maxDepthValue == 1) {
     updateStatus(state.depthOneMode === "manual" 
       ? "Foreground crawl is running. Saving selected linked pages." 
       : "Foreground crawl is running. Saving the starting page and first-level linked pages.");
@@ -71,7 +78,7 @@ async function processLinks() {
       urls = await getForegroundLinks(state.currentPage);
     }
 
-    const savedPagesMap = new Map();
+    // Map all URLs to their local file paths
     savedPagesMap.set(state.currentPage, getTitle(state.currentPage) + ".html");
     for (let url of urls) {
       savedPagesMap.set(url, "html/" + getTitle(url) + ".html");
@@ -80,11 +87,13 @@ async function processLinks() {
     let totalPages = urls.size + 1;
     let completedPages = 0;
 
+    // Process Root Page
     let rootHtml = await processHTML(state.currentPage, "", savedPagesMap, true);
     state.zip.file(getTitle(state.currentPage) + ".html", rootHtml);
     completedPages++;
     updateProgress(completedPages, totalPages);
 
+    // Process First-Level Pages
     for (let url of urls) {
       try {
         updateStatus(state.depthOneMode === "manual" ? "Foreground crawl is running. Saving selected linked pages." : "Foreground crawl is running. Saving linked pages...");
@@ -97,9 +106,66 @@ async function processLinks() {
         console.error("Failed processing page:", url, error);
       }
     }
-    return;
+  } 
+  
+
+  // DEPTH > 1
+
+  else {
+    updateStatus("Depth greater than 1 is still experimental in this alpha build.");
+    return; // Exit early so we don't build an empty index
   }
-  updateStatus("Depth greater than 1 is still experimental in this alpha build.");
+
+
+  // GENERATE MASTER INDEX.HTML
+
+  updateStatus("Generating master index.html...");
+  
+  let indexHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Offline Index</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f7f8fa; color: #222; }
+        .card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e9ecef; }
+        h1 { margin-top: 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; font-size: 1.5rem;}
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f0f2f5; }
+        li:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        a { text-decoration: none; color: #0d6efd; font-size: 1.1rem; font-weight: 600; }
+        a:hover { text-decoration: underline; }
+        .url { font-size: 0.85rem; color: #6c757d; word-break: break-all; margin-top: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>Offline Index</h1>
+        <p style="color: #6c757d; font-size: 0.9rem; margin-top: -5px; margin-bottom: 20px;">
+          Archived on: ${new Date().toLocaleString()}
+        </p>
+        <ul>
+  `;
+
+  for (const [originalUrl, localPath] of savedPagesMap.entries()) {
+    const safeTitle = getTitle(originalUrl);
+    indexHtml += `
+      <li>
+        <a href="${localPath}">${safeTitle}</a>
+        <div class="url">${originalUrl}</div>
+      </li>
+    `;
+  }
+
+  indexHtml += `
+        </ul>
+      </div>
+    </body>
+    </html>
+  `;
+
+  state.zip.file("index.html", indexHtml);
 }
 
 /**

@@ -150,9 +150,25 @@ export async function processPdfs(htmlData, inputUrl) {
 
       const pdfData = await getData(pdfHref);
       if (pdfData !== "Failed" && pdfData !== "") {
-        state.zip.file("pdf/" + getTitle(pdfHref) + ".pdf", pdfData, { binary: true });
+        
+        // 1. Get a safe, shortened filename
+        let baseName = getSafeFilename(pdfHref, "pdf");
+        
+        // 2. Ensure it is strictly unique inside the ZIP
+        let pdfName = baseName;
+        let counter = 2;
+        while (state.zip.file("pdf/" + pdfName)) {
+           // If it exists, append a counter (e.g., file_2.pdf)
+           const nameWithoutExt = baseName.substring(0, baseName.lastIndexOf("."));
+           pdfName = `${nameWithoutExt}_${counter}.pdf`;
+           counter++;
+        }
+
+        // 3. Save to ZIP and rewrite the HTML link
+        state.zip.file("pdf/" + pdfName, pdfData, { binary: true });
+        
         let pdfFolderLocation = state.maxDepthValue === 0 ? "pdf/" : "../pdf/";
-        anchorElement.setAttribute("href", pdfFolderLocation + getTitle(pdfHref) + ".pdf");
+        anchorElement.setAttribute("href", pdfFolderLocation + pdfName);
       }
     } catch (error) {
       console.error("PDF processing error:", error);
@@ -170,6 +186,8 @@ export async function processImages(htmlData, inputUrl, isRootPage = false) {
   let doc = parser.parseFromString(htmlData, "text/html");
   state.zip.folder("img");
 
+  const downloadPromises = []; // NEW: Array to hold all concurrent downloads
+
   for (let imgElement of doc.querySelectorAll("img")) {
     try {
       imgElement.removeAttribute("srcset");
@@ -186,14 +204,20 @@ export async function processImages(htmlData, inputUrl, isRootPage = false) {
       }
 
       let imageName = getSafeFilename(imgSrc, "png");
+      
       if (!state.urlImages.includes(imageName)) {
         state.urlImages.push(imageName);
-        try {
-          const imageData = await urlToPromise(imgSrc);
-          state.zip.file("img/" + imageName, imageData, { binary: true });
-        } catch (fetchErr) {
-          console.error("Download Failed:", imgSrc, fetchErr);
-        }
+        
+        // NEW: Fire the download but don't await it here. Push it to the array.
+        const promise = urlToPromise(imgSrc)
+          .then((imageData) => {
+            state.zip.file("img/" + imageName, imageData, { binary: true });
+          })
+          .catch((fetchErr) => {
+            console.error("Download Failed:", imgSrc, fetchErr);
+          });
+          
+        downloadPromises.push(promise);
       }
 
       let imgFolderLocation = (state.maxDepthValue === 0 || isRootPage) ? "img/" : "../img/";
@@ -202,6 +226,10 @@ export async function processImages(htmlData, inputUrl, isRootPage = false) {
       console.error("Image loop error:", error);
     }
   }
+  
+  // NEW: Wait for every image to finish downloading at the exact same time
+  await Promise.all(downloadPromises);
+  
   return doc.documentElement.outerHTML;
 }
 
@@ -212,6 +240,8 @@ export async function processImages(htmlData, inputUrl, isRootPage = false) {
 export async function processJss(htmlData, inputUrl) {
   const parser = new DOMParser();
   let doc = parser.parseFromString(htmlData, "text/html");
+  
+  const downloadPromises = [];
 
   for (let scriptElement of doc.querySelectorAll("script[src]")) {
     try {
@@ -225,16 +255,24 @@ export async function processJss(htmlData, inputUrl) {
       if (state.urlJSs.includes(scriptSrc)) continue;
       state.urlJSs.push(scriptSrc);
 
-      const jsData = await getData(scriptSrc);
-      if (jsData !== "Failed" && jsData !== "") {
-        state.zip.file("js/" + getTitle(scriptSrc) + ".js", jsData);
-        let jsFolderLocation = state.maxDepthValue === 0 ? "js/" : "../js/";
-        scriptElement.setAttribute("src", jsFolderLocation + getTitle(scriptSrc) + ".js");
-      }
+      // NEW: Push to promises array
+      const promise = getData(scriptSrc).then((jsData) => {
+        if (jsData !== "Failed" && jsData !== "") {
+          state.zip.file("js/" + getTitle(scriptSrc) + ".js", jsData);
+        }
+      }).catch((error) => console.error("JS processing error:", error));
+      
+      downloadPromises.push(promise);
+
+      let jsFolderLocation = state.maxDepthValue === 0 ? "js/" : "../js/";
+      scriptElement.setAttribute("src", jsFolderLocation + getTitle(scriptSrc) + ".js");
     } catch (error) {
-      console.error("JS processing error:", error);
+      console.error("JS loop error:", error);
     }
   }
+  
+  await Promise.all(downloadPromises);
+  
   return doc.documentElement.outerHTML;
 }
 

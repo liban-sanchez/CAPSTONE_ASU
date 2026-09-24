@@ -998,6 +998,10 @@ async function scanLinksFromCurrentPage() {
               ) ||
 
               document.querySelector(
+                "#mw-content-text" /* NEW: Wikipedia specific support */
+              ) ||
+
+              document.querySelector(
                 ".post-content"
               ) ||
 
@@ -1015,6 +1019,19 @@ async function scanLinksFromCurrentPage() {
               "a[href]"
             )
           ) {
+
+            /*
+             * NEW: VISIBILITY CHECK
+             * Skip links that are hidden via CSS
+             * (display: none, visibility: hidden, etc.)
+             */
+            if (
+              anchor.offsetWidth === 0 || 
+              anchor.offsetHeight === 0
+            ) {
+              continue;
+            }
+
 
             const rawHref =
               anchor.getAttribute(
@@ -1068,6 +1085,16 @@ async function scanLinksFromCurrentPage() {
               absolute.startsWith(
                 "tel:"
               )
+            ) {
+              continue;
+            }
+
+            // Ignore Wikipedia meta/utility pages
+            if (
+              absolute.includes("/w/index.php") || 
+              absolute.includes("/wiki/Special:") ||
+              absolute.includes("/wiki/Wikipedia:") ||
+              absolute.includes("/wiki/Help:")
             ) {
               continue;
             }
