@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -66,6 +67,7 @@
           >
             Save websites for offline browsing
           </div>
+
         </div>
 
 
@@ -165,6 +167,7 @@
             Please wait until it finishes.
           </div>
         </section>
+
       </section>
 
 
@@ -226,6 +229,45 @@
 
 
       <!-- ================================================= -->
+      <!-- EMBEDDED VIDEO NOTICE -->
+      <!-- ================================================= -->
+
+      <section
+        class="bg-white rounded shadow-sm border p-3 mb-3"
+      >
+        <div
+          class="d-flex align-items-center justify-content-between mb-2"
+        >
+          <div
+            class="fw-semibold text-dark"
+          >
+            Embedded Video Support
+          </div>
+
+          <i
+            class="bi bi-exclamation-triangle text-warning"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div
+          class="small text-muted"
+        >
+          Embedded videos may not download correctly at this time.
+          The rest of the webpage can still be saved normally.
+        </div>
+
+        <div
+          class="small text-muted mt-2"
+        >
+          If you need the video included in your offline package,
+          use <strong>Add Local Video</strong> below to select a copy
+          from your computer.
+        </div>
+      </section>
+
+
+      <!-- ================================================= -->
       <!-- LOCAL VIDEO IMPORT -->
       <!-- ================================================= -->
 
@@ -253,7 +295,6 @@
           the final offline ZIP package.
         </div>
 
-
         <!-- Video File Picker -->
 
         <div
@@ -275,13 +316,11 @@
           />
         </div>
 
-
         <div
           class="small text-muted mb-2"
         >
           Supported examples include MP4, WebM, MOV, M4V, AVI, and MKV.
         </div>
-
 
         <!-- Selected Video Status -->
 
@@ -295,7 +334,6 @@
             No local videos selected.
           </div>
         </div>
-
 
         <div
           class="small text-muted mt-2"
@@ -337,6 +375,7 @@
       </section>
 
     </main>
+
 
     <!-- ================================================= -->
     <!-- DOWNLOAD OPTIONS MODAL -->
@@ -423,7 +462,6 @@
               </div>
 
 
-
               <!-- ================================================= -->
               <!-- DEPTH SELECTOR -->
               <!-- ================================================= -->
@@ -448,14 +486,12 @@
                   placeholder="Enter a depth from 0 to 10"
                 />
 
-
                 <div
                   class="small text-muted mt-2"
                 >
                   <strong>Depth 0:</strong>
                   Saves only the current page.
                 </div>
-
 
                 <div
                   class="small text-muted mt-1"
@@ -465,7 +501,6 @@
                   either download all valid links or choose the exact links
                   manually.
                 </div>
-
 
                 <div
                   class="small text-warning mt-2"
@@ -488,7 +523,6 @@
                 >
                   Depth 1 Mode
                 </div>
-
 
                 <!-- Download All Links -->
 
@@ -517,7 +551,6 @@
                     Downloads the current page and every valid page it links to.
                   </div>
                 </div>
-
 
                 <!-- Manual Link Selection -->
 
@@ -574,14 +607,12 @@
                     </button>
                   </div>
 
-
                   <div
                     class="small text-muted mb-2"
                   >
                     Scan the current page and choose which first-level links should
                     be included in the download.
                   </div>
-
 
                   <div
                     class="d-flex gap-2 mb-2"
@@ -602,7 +633,6 @@
                       Clear All
                     </button>
                   </div>
-
 
                   <div
                     id="manual-links-list"
@@ -652,7 +682,6 @@
                     </div>
                   </div>
 
-
                   <div
                     class="d-flex align-items-center gap-2"
                   >
@@ -661,7 +690,6 @@
                       data-bs-placement="top"
                       title="This feature has not been fully implemented yet."
                     ></i>
-
 
                     <div
                       class="form-check form-switch m-0"
@@ -699,7 +727,6 @@
                     </div>
                   </div>
 
-
                   <div
                     class="d-flex align-items-center gap-2"
                   >
@@ -708,7 +735,6 @@
                       data-bs-placement="top"
                       title="Recommended when using depth 1."
                     ></i>
-
 
                     <div
                       class="form-check form-switch m-0"
@@ -746,7 +772,6 @@
                     </div>
                   </div>
 
-
                   <div
                     class="d-flex align-items-center gap-2"
                   >
@@ -755,7 +780,6 @@
                       data-bs-placement="top"
                       title="This feature has not been fully implemented yet."
                     ></i>
-
 
                     <div
                       class="form-check form-switch m-0"
@@ -771,7 +795,6 @@
                     </div>
                   </div>
                 </div>
-
 
                 <div
                   class="collapse"
@@ -789,6 +812,7 @@
                     ></textarea>
                   </div>
                 </div>
+
               </div>
 
             </section>
@@ -823,7 +847,6 @@
     </div>
 
 
-
     <!-- ================================================= -->
     <!-- JAVASCRIPT -->
     <!-- ================================================= -->
@@ -839,7 +862,6 @@
     <script
       src="../js/jszip/jszip-utils.js"
     ></script>
-
 
     <!-- Order is important -->
 
