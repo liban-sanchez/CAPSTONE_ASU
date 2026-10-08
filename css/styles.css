@@ -350,3 +350,112 @@ body.gb-worker {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================
+   NEW: Crawl Depth Slider
+   A 0-5 slider replaces the old
+   free number box, so a very deep
+   crawl is not one keystroke away.
+   ========================= */
+.gb-depth-range {
+  margin-top: 6px;
+}
+
+.gb-depth-range::-webkit-slider-thumb {
+  background: var(--gb-primary);
+}
+
+.gb-depth-range::-webkit-slider-runnable-track {
+  background: #e5e7eb;
+  height: 5px;
+  border-radius: 999px;
+}
+
+.gb-depth-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--gb-muted);
+  padding: 0 2px;
+}
+
+.gb-depth-readout {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+/* =========================
+   NEW: Download Dial
+   The progress ring is drawn around
+   the download button itself, so the
+   popup needs no separate progress card.
+   ========================= */
+.gb-dial {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.gb-dial-ring {
+  position: absolute;
+  inset: 0;
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.gb-dial-track {
+  fill: #ffffff;
+  stroke: var(--gb-border);
+  stroke-width: 6;
+}
+
+.gb-dial-value {
+  fill: none;
+  stroke: var(--gb-primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 345.6;
+  stroke-dashoffset: 345.6;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.gb-dial-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.gb-dial-icon {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+.gb-dial-percent {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gb-primary);
+}
+
+/* While a crawl runs the number leads */
+.gb-dial-active .gb-dial-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Finished runs keep the ring but calm it down */
+.gb-dial-done .gb-dial-value {
+  stroke: #16a34a;
+}
+
+.gb-dial-done .gb-dial-percent {
+  color: #16a34a;
+}

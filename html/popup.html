@@ -41,20 +41,6 @@
       >
         <div class="text-center mb-3">
 
-          <div
-            class="d-flex justify-content-center align-items-center mb-2"
-          >
-            <img
-              src="../images/grey-box-play.png"
-              alt="Grey-Box Logo"
-              style="
-                width: 42px;
-                height: 42px;
-                object-fit: contain;
-              "
-            />
-          </div>
-
           <h4
             class="mb-1 fw-bold text-dark"
           >
@@ -82,34 +68,43 @@
             style="cursor: pointer;"
             role="button"
             tabindex="0"
-            aria-haspopup="dialog"
-            aria-controls="download-options-modal"
           >
-            <div
-              class="
-                mx-auto
-                d-flex
-                align-items-center
-                justify-content-center
-                rounded-circle
-                shadow-sm
-                border
-              "
-              style="
-                width: 120px;
-                height: 120px;
-                background: #ffffff;
-              "
-            >
-              <img
-                src="../images/grey-box-play.png"
-                alt="Start Download"
-                style="
-                  width: 54px;
-                  height: 54px;
-                  object-fit: contain;
-                "
-              />
+            <div class="gb-dial mx-auto">
+
+              <!-- Progress ring drawn around the button -->
+              <svg
+                class="gb-dial-ring"
+                viewBox="0 0 120 120"
+                aria-hidden="true"
+              >
+                <circle
+                  class="gb-dial-track"
+                  cx="60"
+                  cy="60"
+                  r="55"
+                />
+
+                <circle
+                  id="progress-ring"
+                  class="gb-dial-value"
+                  cx="60"
+                  cy="60"
+                  r="55"
+                />
+              </svg>
+
+              <div class="gb-dial-face">
+                <img
+                  src="../images/grey-box-play.png"
+                  alt="Start Download"
+                  class="gb-dial-icon"
+                />
+
+                <div
+                  id="current-progress"
+                  class="gb-dial-percent"
+                ></div>
+              </div>
             </div>
 
             <div
@@ -122,297 +117,51 @@
             <div
               class="small text-muted mt-2 px-2"
             >
-              Choose your options, then start
+              Saves this page for offline browsing
               <span
                 class="gb-info"
                 tabindex="0"
                 title="The active browser tab moves page-to-page while your offline copy is prepared."
               >i</span>
             </div>
-          </div>
-        </section>
 
-
-        <!-- ================================================= -->
-        <!-- TOAST -->
-        <!-- ================================================= -->
-
-        <section
-          class="toast w-100"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-          id="toast"
-        >
-          <div
-            class="toast-header"
-          >
-            <strong
-              class="me-auto"
-            >
-              Download in Progress
-            </strong>
-
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="toast"
-              aria-label="Close"
-            ></button>
-          </div>
-
-          <div
-            class="toast-body"
-          >
-            A foreground crawl is already running.
-            <br />
-            Please wait until it finishes.
-          </div>
-        </section>
-      </section>
-
-
-      <!-- ================================================= -->
-      <!-- PROGRESS CARD -->
-      <!-- ================================================= -->
-
-      <section
-        class="bg-white rounded shadow-sm border p-3 mb-3"
-      >
-        <div
-          class="d-flex align-items-center justify-content-between mb-2"
-        >
-          <div
-            class="fw-semibold text-dark"
-          >
-            Download Progress
-          </div>
-
-          <div
-            class="small text-muted"
-          >
-            Live status
-          </div>
-        </div>
-
-        <div
-          class="progress-bar-wrapper"
-        >
-          <div
-            id="progress-bar"
-            class="
-              progress-bar
-              progress-bar-striped
-              progress-bar-animated
-            "
-            role="progressbar"
-            aria-valuenow="0"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            style="
-              width: 0%;
-              min-height: 24px;
-            "
-          >
-            <span
-              id="current-progress"
-            ></span>
-          </div>
-        </div>
-
-        <div
-          class="small text-muted mt-2"
-        >
-          <span
-            id="popup-status"
-          >
-            Waiting to start
-          </span>
-          <span
-            class="gb-info"
-            tabindex="0"
-            title="The final ZIP file downloads once crawling and packaging are complete."
-          >i</span>
-        </div>
-      </section>
-
-
-      <!-- ================================================= -->
-      <!-- LOCAL VIDEO IMPORT -->
-      <!-- ================================================= -->
-
-      <section
-        class="bg-white rounded shadow-sm border p-3 mb-3"
-      >
-        <div
-          class="d-flex align-items-center justify-content-between mb-2"
-        >
-          <div
-            class="fw-semibold text-dark"
-          >
-            Add Local Video
-          </div>
-
-          <i
-            class="bi bi-camera-video text-muted"
-          ></i>
-          <span
-            class="gb-info"
-            tabindex="0"
-            title="Videos already saved on your computer are added to the video/ folder in the final ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
-          >i</span>
-        </div>
-
-
-        <!-- Video File Picker -->
-
-        <div
-          class="mb-2"
-        >
-          <label
-            for="local-video-input"
-            class="form-label fw-semibold text-dark"
-          >
-            Select Video File
-          </label>
-
-          <input
-            type="file"
-            id="local-video-input"
-            class="form-control"
-            accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
-            multiple
-          />
-        </div>
-
-
-
-        <!-- Selected Video Status -->
-
-        <div
-          id="local-video-status"
-          class="border rounded bg-light p-2 mt-2"
-        >
-          <div
-            class="small text-muted"
-          >
-            No local videos selected.
-          </div>
-        </div>
-
-      </section>
-
-
-      <!-- ================================================= -->
-      <!-- FEEDBACK -->
-      <!-- ================================================= -->
-
-      <section
-        id="feedback-form-section"
-        class="bg-white rounded shadow-sm border p-3"
-      >
-        <div
-          class="fw-semibold text-dark mb-1"
-        >
-          Feedback
-        </div>
-
-        <div
-          class="small text-muted mb-2"
-        >
-          Help us improve the alpha experience.
-        </div>
-
-        <a
-          class="btn btn-secondary btn-sm"
-          href="https://forms.gle/p6quKSCDj5PoyVb37"
-          target="_blank"
-        >
-          Provide Feedback
-        </a>
-      </section>
-
-    </main>
-
-    <!-- ================================================= -->
-    <!-- DOWNLOAD OPTIONS MODAL -->
-    <!-- Opens when the user clicks download, from the popup -->
-    <!-- or from the right-click menu. -->
-    <!-- ================================================= -->
-
-    <div
-      class="modal fade"
-      id="download-options-modal"
-      tabindex="-1"
-      aria-labelledby="download-options-title"
-      aria-hidden="true"
-    >
-      <div
-        class="modal-dialog modal-fullscreen modal-dialog-scrollable"
-      >
-        <div
-          class="modal-content"
-          style="background-color: #f7f8fa;"
-        >
-
-          <div
-            class="modal-header bg-white"
-          >
             <div
-              class="d-flex align-items-center gap-2"
-              style="min-width: 0;"
+              id="download-options-page"
+              class="small text-muted mt-1 text-truncate px-2"
+            ></div>
+
+            <div
+              id="progress-section"
+              class="small fw-semibold text-dark mt-2 px-2"
+              style="display: none;"
             >
-              <img
-                src="../images/grey-box-play.png"
-                alt=""
-                style="
-                  width: 28px;
-                  height: 28px;
-                  object-fit: contain;
-                "
-              />
-
-              <div
-                style="min-width: 0;"
-              >
-                <h5
-                  class="modal-title fw-bold text-dark mb-0"
-                  id="download-options-title"
-                >
-                  Download Options
-                </h5>
-
-                <div
-                  id="download-options-page"
-                  class="small text-muted text-truncate"
-                >
-                  Current page
-                </div>
-              </div>
+              <span id="popup-status">Waiting to start</span>
             </div>
-
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
           </div>
+        </section>
 
+
+        <!-- ================================================= -->
+        <!-- ADVANCED OPTIONS -->
+        <!-- ================================================= -->
+
+        <section>
+          <button
+            class="btn btn-sm btn-outline-secondary w-100"
+            type="button"
+            id="advanced-options-toggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#advanced-options"
+            aria-expanded="false"
+            aria-controls="advanced-options"
+          >
+            Advanced options
+          </button>
 
           <div
-            class="modal-body"
+            class="collapse mt-3"
+            id="advanced-options"
           >
-            <section
-              class="bg-white rounded shadow-sm border p-3"
-            >
-              <div
-                class="fw-semibold text-dark mb-3"
-              >
-                Advanced Options
-              </div>
-
-
 
               <!-- ================================================= -->
               <!-- DEPTH SELECTOR -->
@@ -425,6 +174,12 @@
                   class="form-label fw-semibold text-dark"
                   for="choose-depth-input"
                 >
+                  <!--
+                    TODO (Oct 1 review): warn on high depth values.
+                    Explain the exponential page growth, e.g. 10 levels
+                    at 10 links per page. Decide whether "Max" prompts
+                    for a number, which conflicts with this 0-5 cap.
+                  -->
                   Crawl Depth
                   <span
                     class="gb-info"
@@ -434,14 +189,33 @@
                 </label>
 
                 <input
-                  type="number"
+                  type="range"
                   id="choose-depth-input"
                   name="choose-depth"
                   min="0"
-                  max="10"
-                  class="form-control"
-                  placeholder="Enter a depth from 0 to 10"
+                  max="5"
+                  step="1"
+                  value="0"
+                  class="form-range gb-depth-range"
                 />
+
+                <div
+                  class="gb-depth-scale"
+                >
+                  <span>0</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                </div>
+
+                <div
+                  id="depth-readout"
+                  class="gb-depth-readout"
+                >
+                  Depth 0 — just this page
+                </div>
               </div>
 
 
@@ -647,6 +421,11 @@
                   <div>
                     <label
                       class="form-check-label fw-semibold text-dark"
+                      <!--
+                        TODO (Oct 1 review): move Restrict Domain above
+                        the other switches and recommend keeping it on
+                        for any crawl deeper than one level.
+                      -->
                       for="restrict-domain-toggle"
                     >
                       Restrict Domain
@@ -738,36 +517,150 @@
                   </div>
                 </div>
               </div>
-
-            </section>
           </div>
+        </section>
 
+
+        <!-- ================================================= -->
+        <!-- TOAST -->
+        <!-- ================================================= -->
+
+        <section
+          class="toast w-100"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+          id="toast"
+        >
+          <div
+            class="toast-header"
+          >
+            <strong
+              class="me-auto"
+            >
+              Download in Progress
+            </strong>
+
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="toast"
+              aria-label="Close"
+            ></button>
+          </div>
 
           <div
-            class="modal-footer bg-white"
+            class="toast-body"
           >
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
+            A foreground crawl is already running.
+            <br />
+            Please wait until it finishes.
+          </div>
+        </section>
+      </section>
 
-            <button
-              type="button"
-              class="btn btn-primary"
-              id="start-download-button"
-            >
-              Start Download
-            </button>
+
+      <!-- ================================================= -->
+      <!-- LOCAL VIDEO IMPORT -->
+      <!-- ================================================= -->
+
+      <section
+        class="bg-white rounded shadow-sm border p-3 mb-3"
+      >
+        <div
+          class="d-flex align-items-center justify-content-between mb-2"
+        >
+          <div
+            class="fw-semibold text-dark"
+          >
+            <!--
+              TODO (Oct 1 review): fold embedded video support and this
+              local video picker into one video block, shown only after
+              Download when the page actually has video.
+            -->
+            Add Local Video
           </div>
 
+          <i
+            class="bi bi-camera-video text-muted"
+          ></i>
+          <span
+            class="gb-info"
+            tabindex="0"
+            title="Videos already saved on your computer are added to the video/ folder in the final ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
+          >i</span>
         </div>
-      </div>
-    </div>
 
 
+        <!-- Video File Picker -->
+
+        <div
+          class="mb-2"
+        >
+          <label
+            for="local-video-input"
+            class="form-label fw-semibold text-dark"
+          >
+            Select Video File
+          </label>
+
+          <input
+            type="file"
+            id="local-video-input"
+            class="form-control"
+            accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
+            multiple
+          />
+        </div>
+
+
+
+        <!-- Selected Video Status -->
+
+        <div
+          id="local-video-status"
+          class="border rounded bg-light p-2 mt-2"
+        >
+          <div
+            class="small text-muted"
+          >
+            No local videos selected.
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ================================================= -->
+      <!-- FEEDBACK -->
+      <!-- ================================================= -->
+
+      <section
+        id="feedback-form-section"
+        class="bg-white rounded shadow-sm border p-3"
+      >
+        <div
+          class="fw-semibold text-dark mb-1"
+        >
+          Feedback
+        </div>
+
+        <div
+          class="small text-muted mb-2"
+        >
+          Help us improve the alpha experience.
+        </div>
+
+        <a
+          class="btn btn-secondary btn-sm"
+          href="https://forms.gle/p6quKSCDj5PoyVb37"
+          target="_blank"
+        >
+          Provide Feedback
+        </a>
+      </section>
+
+    </main>
 
     <!-- ================================================= -->
     <!-- JAVASCRIPT -->

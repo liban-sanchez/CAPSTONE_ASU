@@ -21,11 +21,8 @@ const depthMode =
 // DOWNLOAD OPTIONS MODAL
 // ============================================================
 
-const downloadOptionsModalElement =
-  document.getElementById("download-options-modal");
-
-const startDownloadButton =
-  document.getElementById("start-download-button");
+const advancedOptionsSection =
+  document.getElementById("advanced-options");
 
 const downloadOptionsPage =
   document.getElementById("download-options-page");
@@ -44,8 +41,6 @@ const CONTEXT_MENU_LAUNCH_KEY =
 const CONTEXT_MENU_LAUNCH_MAX_AGE_MS =
   10000;
 
-let isContextMenuLaunch =
-  false;
 
 
 // ============================================================
@@ -486,17 +481,49 @@ function updateLocalVideoStatus() {
 // DEPTH MODE
 // ============================================================
 
+const depthReadout =
+  document.getElementById("depth-readout");
+
+
+const DEPTH_LABELS = [
+  "Depth 0 \u2014 just this page",
+  "Depth 1 \u2014 this page and the pages it links to",
+  "Depth 2 \u2014 two levels of links, slower",
+  "Depth 3 \u2014 three levels of links, much slower",
+  "Depth 4 \u2014 four levels, expect a long wait",
+  "Depth 5 \u2014 five levels, the heaviest crawl"
+];
+
+
+function handleDepthChange() {
+
+  maxDepthValue =
+    Number(
+      depthMode.value || 0
+    );
+
+
+  if (depthReadout) {
+
+    depthReadout.innerText =
+      DEPTH_LABELS[maxDepthValue] ||
+      ("Depth " + maxDepthValue);
+  }
+
+
+  updateDepthOneUI();
+}
+
+
+depthMode.addEventListener(
+  "input",
+  handleDepthChange
+);
+
+
 depthMode.addEventListener(
   "change",
-  (e) => {
-
-    maxDepthValue =
-      Number(
-        e.target.value || 0
-      );
-
-    updateDepthOneUI();
-  }
+  handleDepthChange
 );
 
 
@@ -735,9 +762,6 @@ async function resolveSourceTab() {
 
       sourceTabId =
         tab.id ?? null;
-
-      isContextMenuLaunch =
-        true;
 
       return;
 
@@ -1398,7 +1422,7 @@ document.addEventListener(
     fillOptions();
 
 
-    updateDepthOneUI();
+    handleDepthChange();
 
 
     updateLocalVideoStatus();
@@ -1411,17 +1435,11 @@ document.addEventListener(
 
 
     /*
-     * Right-click launch: go straight
-     * to the download options.
+     * Show which page will be saved, including
+     * the page picked from the right-click menu.
      */
     sourceTabReady.then(
-      () => {
-
-        if (isContextMenuLaunch) {
-
-          openDownloadOptions();
-        }
-      }
+      updateDownloadOptionsPageLabel
     );
   }
 );
@@ -1433,7 +1451,7 @@ document.addEventListener(
 
 submitButton.addEventListener(
   "click",
-  openDownloadOptions
+  startDownloadFromPopup
 );
 
 
@@ -1448,50 +1466,29 @@ submitButton.addEventListener(
 
       e.preventDefault();
 
-      openDownloadOptions();
+      startDownloadFromPopup();
     }
   }
 );
 
 
-if (startDownloadButton) {
-
-  startDownloadButton.addEventListener(
-    "click",
-    checkDownloadFlag
-  );
-}
-
-
 /**
- * Bootstrap modal instance for
- * the download options.
+ * Opens the advanced options, used when
+ * something in there needs attention.
  */
-function getDownloadOptionsModal() {
+function openAdvancedOptions() {
 
   if (
-    !downloadOptionsModalElement ||
+    !advancedOptionsSection ||
     typeof bootstrap === "undefined"
   ) {
-    return null;
+    return;
   }
 
 
-  return bootstrap.Modal.getOrCreateInstance(
-    downloadOptionsModalElement
-  );
-}
-
-
-function hideDownloadOptionsModal() {
-
-  const modal =
-    getDownloadOptionsModal();
-
-
-  if (modal) {
-    modal.hide();
-  }
+  bootstrap.Collapse.getOrCreateInstance(
+    advancedOptionsSection
+  ).show();
 }
 
 
@@ -1544,40 +1541,14 @@ function updateDownloadOptionsPageLabel() {
 
 
 /**
- * Opens the download options popup.
- * If a crawl is already running,
- * shows the in-progress toast instead.
+ * The download button starts the crawl
+ * with whatever is set in the popup.
  */
-async function openDownloadOptions() {
+async function startDownloadFromPopup() {
 
   await sourceTabReady;
 
-
-  chrome.storage.sync.get(
-    (items) => {
-
-      if (items.downloadFlag) {
-
-        showDownloadInProgressToast();
-
-        return;
-      }
-
-
-      updateDownloadOptionsPageLabel();
-
-      updateDepthOneUI();
-
-
-      const modal =
-        getDownloadOptionsModal();
-
-
-      if (modal) {
-        modal.show();
-      }
-    }
-  );
+  checkDownloadFlag();
 }
 
 
@@ -1612,6 +1583,9 @@ function checkDownloadFlag() {
               0
           ) {
 
+            openAdvancedOptions();
+
+
             if (
               manualLinksList
             ) {
@@ -1626,9 +1600,6 @@ function checkDownloadFlag() {
             return;
           }
         }
-
-
-        hideDownloadOptionsModal();
 
 
         const buttonTitle =
@@ -1647,8 +1618,6 @@ function checkDownloadFlag() {
         startCrawl();
 
       } else {
-
-        hideDownloadOptionsModal();
 
         showDownloadInProgressToast();
       }
@@ -1945,17 +1914,45 @@ const progressChannel =
   new BroadcastChannel("scraper_progress");
 
 
-const popupProgressBar =
-  document.getElementById("progress-bar");
+const progressRing =
+  document.getElementById("progress-ring");
 
 const popupProgressText =
   document.getElementById("current-progress");
 
+
+/*
+ * Circumference of the ring drawn around
+ * the download button (r = 55).
+ */
+const RING_LENGTH =
+  2 * Math.PI * 55;
+
 const popupStatus =
   document.getElementById("popup-status");
 
+const progressSection =
+  document.getElementById("progress-section");
+
+
+/**
+ * The progress card stays hidden
+ * until there is something to show.
+ */
+function showProgressSection() {
+
+  if (progressSection) {
+
+    progressSection.style.display =
+      "block";
+  }
+}
+
 
 function updatePopupProgress(percentage) {
+
+  showProgressSection();
+
 
   const value =
     Math.max(
@@ -1967,15 +1964,16 @@ function updatePopupProgress(percentage) {
     );
 
 
-  if (popupProgressBar) {
+  if (progressRing) {
 
-    popupProgressBar.style.width =
-      value + "%";
+    progressRing.style.strokeDasharray =
+      String(RING_LENGTH);
 
-    popupProgressBar.setAttribute(
-      "aria-valuenow",
-      String(value)
-    );
+    progressRing.style.strokeDashoffset =
+      String(
+        RING_LENGTH -
+        (RING_LENGTH * value / 100)
+      );
   }
 
 
@@ -1984,15 +1982,58 @@ function updatePopupProgress(percentage) {
     popupProgressText.innerText =
       value + "%";
   }
+
+
+  /*
+   * The icon gives way to the percentage
+   * once a crawl is under way.
+   */
+  if (submitButton) {
+
+    submitButton.classList.add(
+      "gb-dial-active"
+    );
+  }
 }
 
 
 function updatePopupStatus(message) {
 
+  showProgressSection();
+
+
   if (popupStatus) {
 
     popupStatus.innerText =
       message;
+  }
+
+
+  if (
+    submitButton &&
+    /complete|failed/i.test(message)
+  ) {
+
+    submitButton.classList.add(
+      "gb-dial-done"
+    );
+
+
+    /*
+     * The crawl is over, so the button
+     * reads as ready again.
+     */
+    const buttonTitle =
+      document.getElementById(
+        "button-title"
+      );
+
+
+    if (buttonTitle) {
+
+      buttonTitle.innerText =
+        "Download This Page";
+    }
   }
 }
 
