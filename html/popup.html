@@ -379,8 +379,6 @@
 
     <!-- ================================================= -->
     <!-- DOWNLOAD OPTIONS MODAL -->
-    <!-- Opens when the user clicks download, from the popup -->
-    <!-- or from the right-click menu. -->
     <!-- ================================================= -->
 
     <div
@@ -397,6 +395,10 @@
           class="modal-content"
           style="background-color: #f7f8fa;"
         >
+
+          <!-- ================================================= -->
+          <!-- MODAL HEADER -->
+          <!-- ================================================= -->
 
           <div
             class="modal-header bg-white"
@@ -443,6 +445,10 @@
           </div>
 
 
+          <!-- ================================================= -->
+          <!-- MODAL BODY -->
+          <!-- ================================================= -->
+
           <div
             class="modal-body"
           >
@@ -451,6 +457,332 @@
             >
               Set up how this page should be saved, then start the download.
             </div>
+
+
+            <!-- ================================================= -->
+            <!-- PACKAGE ORGANIZATION -->
+            <!-- ================================================= -->
+
+            <section
+              class="bg-white rounded shadow-sm border p-3 mb-3"
+            >
+              <div
+                class="d-flex align-items-center justify-content-between mb-3"
+              >
+                <div>
+                  <div class="fw-semibold text-dark">
+                    Package Organization
+                  </div>
+
+                  <div class="small text-muted mt-1">
+                    Customize how your offline website package is organized.
+                  </div>
+                </div>
+
+                <i
+                  class="bi bi-folder text-muted"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- PACKAGE NAME -->
+              <!-- ================================================= -->
+
+              <div class="mb-3">
+
+                <label
+                  for="package-name-input"
+                  class="form-label fw-semibold text-dark"
+                >
+                  Package Name
+                </label>
+
+                <input
+                  type="text"
+                  id="package-name-input"
+                  class="form-control"
+                  value="offline-website"
+                  placeholder="Enter package name"
+                  maxlength="100"
+                />
+
+                <div class="small text-muted mt-1">
+                  This name will be used for the downloaded offline package.
+                </div>
+
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- ORGANIZATION MODE -->
+              <!-- ================================================= -->
+
+              <div class="mb-3">
+
+                <div class="fw-semibold text-dark mb-2">
+                  Folder Organization
+                </div>
+
+                <div class="form-check mb-2">
+
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="package-organization-mode"
+                    id="package-organization-default"
+                    value="default"
+                    checked
+                  />
+
+                  <label
+                    class="form-check-label"
+                    for="package-organization-default"
+                  >
+                    Default
+                  </label>
+
+                  <div class="small text-muted ms-4">
+                    Use Project Scraper's recommended folder structure.
+                  </div>
+
+                </div>
+
+
+                <div class="form-check">
+
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="package-organization-mode"
+                    id="package-organization-custom"
+                    value="custom"
+                  />
+
+                  <label
+                    class="form-check-label"
+                    for="package-organization-custom"
+                  >
+                    Custom
+                  </label>
+
+                  <div class="small text-muted ms-4">
+                    Choose your own names for content folders.
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- CUSTOM FOLDER SETTINGS -->
+              <!-- ================================================= -->
+
+              <div
+                id="custom-folder-settings"
+                class="border rounded bg-light p-3 mb-3"
+                style="display: none;"
+              >
+
+                <div class="fw-semibold text-dark mb-1">
+                  Custom Folder Names
+                </div>
+
+                <div class="small text-muted mb-3">
+                  Choose how resources will be named inside the offline package.
+                </div>
+
+
+                <!-- Images -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="images-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Images
+                  </label>
+
+                  <input
+                    type="text"
+                    id="images-folder-input"
+                    class="form-control form-control-sm"
+                    value="images"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- Videos -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="videos-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Videos
+                  </label>
+
+                  <input
+                    type="text"
+                    id="videos-folder-input"
+                    class="form-control form-control-sm"
+                    value="videos"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- Documents -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="documents-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Documents
+                  </label>
+
+                  <input
+                    type="text"
+                    id="documents-folder-input"
+                    class="form-control form-control-sm"
+                    value="documents"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- Styles -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="styles-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Styles
+                  </label>
+
+                  <input
+                    type="text"
+                    id="styles-folder-input"
+                    class="form-control form-control-sm"
+                    value="styles"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- Scripts -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="scripts-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Scripts
+                  </label>
+
+                  <input
+                    type="text"
+                    id="scripts-folder-input"
+                    class="form-control form-control-sm"
+                    value="scripts"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- Pages -->
+
+                <div class="mb-3">
+
+                  <label
+                    for="pages-folder-input"
+                    class="form-label small fw-semibold"
+                  >
+                    Pages
+                  </label>
+
+                  <input
+                    type="text"
+                    id="pages-folder-input"
+                    class="form-control form-control-sm"
+                    value="pages"
+                    maxlength="50"
+                  />
+
+                </div>
+
+
+                <!-- RESET BUTTON -->
+
+                <button
+                  type="button"
+                  id="reset-package-folders-button"
+                  class="btn btn-outline-secondary btn-sm"
+                >
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>
+                  Reset Folder Names
+                </button>
+
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- README OPTION -->
+              <!-- ================================================= -->
+
+              <div
+                class="d-flex align-items-center justify-content-between"
+              >
+
+                <div>
+
+                  <label
+                    class="form-check-label fw-semibold text-dark"
+                    for="include-readme-toggle"
+                  >
+                    Include README
+                  </label>
+
+                  <div class="small text-muted">
+                    Add instructions and package information to the download.
+                  </div>
+
+                </div>
+
+                <div class="form-check form-switch m-0">
+
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="include-readme-toggle"
+                    checked
+                  />
+
+                </div>
+
+              </div>
+
+            </section>
+
+
+            <!-- ================================================= -->
+            <!-- ADVANCED OPTIONS -->
+            <!-- ================================================= -->
 
             <section
               class="bg-white rounded shadow-sm border p-3"
@@ -524,6 +856,7 @@
                   Depth 1 Mode
                 </div>
 
+
                 <!-- Download All Links -->
 
                 <div
@@ -551,6 +884,7 @@
                     Downloads the current page and every valid page it links to.
                   </div>
                 </div>
+
 
                 <!-- Manual Link Selection -->
 
@@ -649,6 +983,7 @@
                     </div>
                   </div>
                 </div>
+
               </div>
 
 
@@ -659,6 +994,7 @@
               <div
                 class="border-top pt-3 mt-3"
               >
+
 
                 <!-- ================================================= -->
                 <!-- FOCUS MODE -->
@@ -796,6 +1132,7 @@
                   </div>
                 </div>
 
+
                 <div
                   class="collapse"
                   id="collapseWidthMultipleURLs"
@@ -816,8 +1153,13 @@
               </div>
 
             </section>
+
           </div>
 
+
+          <!-- ================================================= -->
+          <!-- MODAL FOOTER -->
+          <!-- ================================================= -->
 
           <div
             class="modal-footer bg-white"

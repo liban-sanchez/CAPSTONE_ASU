@@ -1,17 +1,23 @@
 const broadcastChannel =
   new BroadcastChannel("scraper_data");
 
+
 let currentPage = "";
+
 let sourceTabId = null;
+
 
 const submitButton =
   document.getElementById("submit-button");
 
+
 const focusMode =
   document.getElementById("focus-mode-toggle");
 
+
 const restrictDomain =
   document.getElementById("restrict-domain-toggle");
+
 
 const depthMode =
   document.getElementById("choose-depth-input");
@@ -24,11 +30,122 @@ const depthMode =
 const downloadOptionsModalElement =
   document.getElementById("download-options-modal");
 
+
 const startDownloadButton =
   document.getElementById("start-download-button");
 
+
 const downloadOptionsPage =
   document.getElementById("download-options-page");
+
+
+// ============================================================
+// PACKAGE ORGANIZATION ELEMENTS
+// ============================================================
+
+const packageNameInput =
+  document.getElementById(
+    "package-name-input"
+  );
+
+
+const packageOrganizationDefault =
+  document.getElementById(
+    "package-organization-default"
+  );
+
+
+const packageOrganizationCustom =
+  document.getElementById(
+    "package-organization-custom"
+  );
+
+
+const customFolderSettings =
+  document.getElementById(
+    "custom-folder-settings"
+  );
+
+
+const imagesFolderInput =
+  document.getElementById(
+    "images-folder-input"
+  );
+
+
+const videosFolderInput =
+  document.getElementById(
+    "videos-folder-input"
+  );
+
+
+const documentsFolderInput =
+  document.getElementById(
+    "documents-folder-input"
+  );
+
+
+const stylesFolderInput =
+  document.getElementById(
+    "styles-folder-input"
+  );
+
+
+const scriptsFolderInput =
+  document.getElementById(
+    "scripts-folder-input"
+  );
+
+
+const pagesFolderInput =
+  document.getElementById(
+    "pages-folder-input"
+  );
+
+
+const includeReadmeToggle =
+  document.getElementById(
+    "include-readme-toggle"
+  );
+
+
+const resetPackageFoldersButton =
+  document.getElementById(
+    "reset-package-folders-button"
+  );
+
+
+/*
+ * Recommended/default folder names.
+ *
+ * We keep these in one place so the UI
+ * and the scraper can use the same
+ * predictable defaults.
+ */
+const DEFAULT_PACKAGE_FOLDERS = {
+
+  assets:
+    "assets",
+
+  images:
+    "images",
+
+  videos:
+    "videos",
+
+  documents:
+    "documents",
+
+  styles:
+    "styles",
+
+  scripts:
+    "scripts",
+
+  pages:
+    "pages"
+
+};
 
 
 /*
@@ -41,8 +158,10 @@ const downloadOptionsPage =
 const CONTEXT_MENU_LAUNCH_KEY =
   "pendingContextMenuDownload";
 
+
 const CONTEXT_MENU_LAUNCH_MAX_AGE_MS =
   10000;
+
 
 let isContextMenuLaunch =
   false;
@@ -53,19 +172,22 @@ let isContextMenuLaunch =
 // ============================================================
 
 /*
- * These elements will be added to popup.html.
- *
  * local-video-input:
  * File picker for videos from the user's computer.
  *
  * local-video-status:
- * Optional text area showing which videos were selected.
+ * Text area showing which videos were selected.
  */
 const localVideoInput =
-  document.getElementById("local-video-input");
+  document.getElementById(
+    "local-video-input"
+  );
+
 
 const localVideoStatus =
-  document.getElementById("local-video-status");
+  document.getElementById(
+    "local-video-status"
+  );
 
 
 /*
@@ -93,35 +215,42 @@ const depthOneModeSection =
     "depth-one-mode-section"
   );
 
+
 const depthOneAllLinks =
   document.getElementById(
     "depth-one-all-links"
   );
+
 
 const depthOneManualLinks =
   document.getElementById(
     "depth-one-manual-links"
   );
 
+
 const manualLinkControls =
   document.getElementById(
     "manual-link-controls"
   );
+
 
 const scanLinksButton =
   document.getElementById(
     "scan-links-button"
   );
 
+
 const selectAllLinksButton =
   document.getElementById(
     "select-all-links-button"
   );
 
+
 const clearAllLinksButton =
   document.getElementById(
     "clear-all-links-button"
   );
+
 
 const manualLinksList =
   document.getElementById(
@@ -134,14 +263,336 @@ const manualLinksList =
 // ============================================================
 
 let isFocusMode = false;
+
 let isRestrictDomain = false;
+
 let maxDepthValue = 0;
 
-let depthOneMode = "all";
+
+let depthOneMode =
+  "all";
+
 
 let scannedLinks = [];
 
+
 let selectedManualLinks = [];
+
+
+// ============================================================
+// PACKAGE ORGANIZATION
+// ============================================================
+
+/**
+ * Show the custom folder-name fields only
+ * when the user selects Custom organization.
+ */
+function updatePackageOrganizationUI() {
+
+  if (!customFolderSettings) {
+    return;
+  }
+
+
+  const isCustom =
+    Boolean(
+      packageOrganizationCustom &&
+      packageOrganizationCustom.checked
+    );
+
+
+  customFolderSettings.style.display =
+    isCustom
+      ? "block"
+      : "none";
+}
+
+
+/**
+ * Restore all customizable folder names
+ * to Project Scraper's recommended defaults.
+ */
+function resetPackageFolderNames() {
+
+  if (imagesFolderInput) {
+
+    imagesFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.images;
+
+  }
+
+
+  if (videosFolderInput) {
+
+    videosFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.videos;
+
+  }
+
+
+  if (documentsFolderInput) {
+
+    documentsFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.documents;
+
+  }
+
+
+  if (stylesFolderInput) {
+
+    stylesFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.styles;
+
+  }
+
+
+  if (scriptsFolderInput) {
+
+    scriptsFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.scripts;
+
+  }
+
+
+  if (pagesFolderInput) {
+
+    pagesFolderInput.value =
+      DEFAULT_PACKAGE_FOLDERS.pages;
+
+  }
+
+}
+
+
+/**
+ * Convert a package/folder name into a
+ * value that is safer to use inside a ZIP.
+ *
+ * Example:
+ *
+ * Biology Lesson - Week 4
+ *
+ * becomes:
+ *
+ * Biology-Lesson-Week-4
+ */
+function sanitizePackageName(
+  value,
+  fallback
+) {
+
+  const cleaned =
+    String(
+      value ?? ""
+    )
+      .trim()
+
+      /*
+       * Remove characters that are invalid
+       * or troublesome on common file systems.
+       */
+      .replace(
+        /[\\/:*?"<>|]+/g,
+        "-"
+      )
+
+      /*
+       * Replace spaces with hyphens.
+       */
+      .replace(
+        /\s+/g,
+        "-"
+      )
+
+      /*
+       * Avoid repeated hyphens.
+       */
+      .replace(
+        /-+/g,
+        "-"
+      )
+
+      /*
+       * Remove leading/trailing dots
+       * and hyphens.
+       */
+      .replace(
+        /^[-.]+|[-.]+$/g,
+        ""
+      );
+
+
+  return (
+    cleaned &&
+    cleaned !== "." &&
+    cleaned !== ".."
+  )
+    ? cleaned
+    : fallback;
+
+}
+
+
+/**
+ * Folder names currently use the same
+ * restrictions as package names.
+ */
+function sanitizeFolderName(
+  value,
+  fallback
+) {
+
+  return sanitizePackageName(
+    value,
+    fallback
+  );
+
+}
+
+
+/**
+ * Build the package configuration that
+ * will eventually be sent to window.js.
+ */
+function getPackageConfig() {
+
+  const organizationMode =
+    packageOrganizationCustom &&
+    packageOrganizationCustom.checked
+      ? "custom"
+      : "default";
+
+
+  /*
+   * Start with safe defaults.
+   *
+   * Custom mode only replaces the values
+   * the user is allowed to rename.
+   */
+  const folders = {
+    ...DEFAULT_PACKAGE_FOLDERS
+  };
+
+
+  if (
+    organizationMode ===
+    "custom"
+  ) {
+
+    folders.images =
+      sanitizeFolderName(
+        imagesFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.images
+      );
+
+
+    folders.videos =
+      sanitizeFolderName(
+        videosFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.videos
+      );
+
+
+    folders.documents =
+      sanitizeFolderName(
+        documentsFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.documents
+      );
+
+
+    folders.styles =
+      sanitizeFolderName(
+        stylesFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.styles
+      );
+
+
+    folders.scripts =
+      sanitizeFolderName(
+        scriptsFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.scripts
+      );
+
+
+    folders.pages =
+      sanitizeFolderName(
+        pagesFolderInput?.value,
+        DEFAULT_PACKAGE_FOLDERS.pages
+      );
+
+  }
+
+
+  return {
+
+    packageName:
+      sanitizePackageName(
+        packageNameInput?.value,
+        "offline-website"
+      ),
+
+
+    organizationMode:
+      organizationMode,
+
+
+    folders:
+      folders,
+
+
+    includeReadme:
+      includeReadmeToggle
+        ? Boolean(
+            includeReadmeToggle.checked
+          )
+        : true
+
+  };
+
+}
+
+
+// ============================================================
+// PACKAGE ORGANIZATION EVENTS
+// ============================================================
+
+if (
+  packageOrganizationDefault
+) {
+
+  packageOrganizationDefault
+    .addEventListener(
+      "change",
+      updatePackageOrganizationUI
+    );
+
+}
+
+
+if (
+  packageOrganizationCustom
+) {
+
+  packageOrganizationCustom
+    .addEventListener(
+      "change",
+      updatePackageOrganizationUI
+    );
+
+}
+
+
+if (
+  resetPackageFoldersButton
+) {
+
+  resetPackageFoldersButton
+    .addEventListener(
+      "click",
+      resetPackageFolderNames
+    );
+
+}
 
 
 // ============================================================
@@ -163,11 +614,17 @@ if (localVideoInput) {
       const files =
         event.target.files;
 
+
       if (!files) {
+
         selectedLocalVideos = [];
+
         updateLocalVideoStatus();
+
         return;
+
       }
+
 
       /*
        * Convert FileList into a normal
@@ -190,17 +647,24 @@ if (localVideoInput) {
         "Local videos selected:",
         selectedLocalVideos.map(
           (file) => ({
-            name: file.name,
-            type: file.type,
-            size: file.size
+            name:
+              file.name,
+
+            type:
+              file.type,
+
+            size:
+              file.size
           })
         )
       );
 
 
       updateLocalVideoStatus();
+
     }
   );
+
 }
 
 
@@ -217,8 +681,10 @@ function isKnownVideoExtension(
     return false;
   }
 
+
   const lower =
     filename.toLowerCase();
+
 
   return (
     lower.endsWith(".mp4") ||
@@ -228,6 +694,7 @@ function isKnownVideoExtension(
     lower.endsWith(".avi") ||
     lower.endsWith(".mkv")
   );
+
 }
 
 
@@ -253,6 +720,7 @@ function updateLocalVideoStatus() {
     `;
 
     return;
+
   }
 
 
@@ -262,19 +730,25 @@ function updateLocalVideoStatus() {
    * of inserting filenames into
    * raw HTML.
    */
-  localVideoStatus.innerHTML = "";
+  localVideoStatus.innerHTML =
+    "";
 
 
   const heading =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   heading.className =
     "small fw-semibold";
+
 
   heading.textContent =
     selectedLocalVideos.length === 1
       ? "1 video selected:"
       : `${selectedLocalVideos.length} videos selected:`;
+
 
   localVideoStatus.appendChild(
     heading
@@ -287,10 +761,14 @@ function updateLocalVideoStatus() {
   ) {
 
     const fileRow =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
+
 
     fileRow.className =
       "small text-muted";
+
 
     const sizeMb =
       (
@@ -299,13 +777,17 @@ function updateLocalVideoStatus() {
         1024
       ).toFixed(2);
 
+
     fileRow.textContent =
       `${file.name} (${sizeMb} MB)`;
+
 
     localVideoStatus.appendChild(
       fileRow
     );
+
   }
+
 }
 
 
@@ -322,7 +804,9 @@ depthMode.addEventListener(
         e.target.value || 0
       );
 
+
     updateDepthOneUI();
+
   }
 );
 
@@ -340,10 +824,14 @@ focusMode.addEventListener(
         e.target.checked
       );
 
+
     chrome.storage.sync.set({
+
       isFocusMode:
         isFocusMode
+
     });
+
   }
 );
 
@@ -361,10 +849,14 @@ restrictDomain.addEventListener(
         e.target.checked
       );
 
+
     chrome.storage.sync.set({
+
       isRestrictDomain:
         isRestrictDomain
+
     });
+
   }
 );
 
@@ -386,10 +878,14 @@ if (depthOneAllLinks) {
         depthOneMode =
           "all";
 
+
         updateDepthOneUI();
+
       }
+
     }
   );
+
 }
 
 
@@ -406,10 +902,14 @@ if (depthOneManualLinks) {
         depthOneMode =
           "manual";
 
+
         updateDepthOneUI();
+
       }
+
     }
   );
+
 }
 
 
@@ -420,8 +920,10 @@ if (scanLinksButton) {
     async () => {
 
       await scanLinksFromCurrentPage();
+
     }
   );
+
 }
 
 
@@ -437,7 +939,8 @@ if (selectAllLinksButton) {
         );
 
 
-      selectedManualLinks = [];
+      selectedManualLinks =
+        [];
 
 
       checkboxes.forEach(
@@ -450,10 +953,13 @@ if (selectAllLinksButton) {
           selectedManualLinks.push(
             checkbox.dataset.linkUrl
           );
+
         }
       );
+
     }
   );
+
 }
 
 
@@ -474,13 +980,17 @@ if (clearAllLinksButton) {
 
           checkbox.checked =
             false;
+
         }
       );
 
 
-      selectedManualLinks = [];
+      selectedManualLinks =
+        [];
+
     }
   );
+
 }
 
 
@@ -501,12 +1011,17 @@ async function takeContextMenuLaunch() {
         CONTEXT_MENU_LAUNCH_KEY
       );
 
+
     const launch =
-      items[CONTEXT_MENU_LAUNCH_KEY];
+      items[
+        CONTEXT_MENU_LAUNCH_KEY
+      ];
 
 
     if (!launch) {
+
       return null;
+
     }
 
 
@@ -516,14 +1031,22 @@ async function takeContextMenuLaunch() {
 
 
     const isFresh =
-      Date.now() - Number(launch.createdAt || 0) <
+      Date.now() -
+        Number(
+          launch.createdAt || 0
+        ) <
       CONTEXT_MENU_LAUNCH_MAX_AGE_MS;
 
 
-    return isFresh &&
-      Number.isInteger(launch.tabId)
+    return (
+      isFresh &&
+      Number.isInteger(
+        launch.tabId
+      )
+    )
       ? launch
       : null;
+
 
   } catch (error) {
 
@@ -532,8 +1055,11 @@ async function takeContextMenuLaunch() {
       error
     );
 
+
     return null;
+
   }
+
 }
 
 
@@ -555,18 +1081,25 @@ async function resolveSourceTab() {
     try {
 
       const tab =
-        await chrome.tabs.get(launch.tabId);
+        await chrome.tabs.get(
+          launch.tabId
+        );
+
 
       currentPage =
         tab.url ?? "";
 
+
       sourceTabId =
         tab.id ?? null;
+
 
       isContextMenuLaunch =
         true;
 
+
       return;
+
 
     } catch (error) {
 
@@ -574,14 +1107,21 @@ async function resolveSourceTab() {
         "Right-clicked tab is no longer available:",
         error
       );
+
     }
+
   }
 
 
   const tabs =
     await chrome.tabs.query({
-      currentWindow: true,
-      active: true
+
+      currentWindow:
+        true,
+
+      active:
+        true
+
     });
 
 
@@ -593,9 +1133,12 @@ async function resolveSourceTab() {
     currentPage =
       tabs[0].url ?? "";
 
+
     sourceTabId =
       tabs[0].id ?? null;
+
   }
+
 }
 
 
@@ -615,9 +1158,12 @@ const setDownloadFlag =
   (isDownloading) => {
 
     chrome.storage.sync.set({
+
       downloadFlag:
         isDownloading
+
     });
+
   };
 
 
@@ -649,6 +1195,7 @@ function fillOptions() {
           Boolean(
             isFocusMode
           );
+
       }
 
 
@@ -658,9 +1205,12 @@ function fillOptions() {
           Boolean(
             isRestrictDomain
           );
+
       }
+
     }
   );
+
 }
 
 
@@ -678,7 +1228,9 @@ function updateDepthOneUI() {
     !depthOneModeSection ||
     !manualLinkControls
   ) {
+
     return;
+
   }
 
 
@@ -699,7 +1251,9 @@ function updateDepthOneUI() {
     manualLinkControls.style.display =
       "none";
 
+
     return;
+
   }
 
 
@@ -707,9 +1261,8 @@ function updateDepthOneUI() {
     depthOneMode === "manual"
       ? "block"
       : "none";
+
 }
-
-
 // ============================================================
 // MANUAL LINK LIST
 // ============================================================
@@ -721,7 +1274,9 @@ function updateDepthOneUI() {
 function renderManualLinks() {
 
   if (!manualLinksList) {
+
     return;
+
   }
 
 
@@ -736,7 +1291,9 @@ function renderManualLinks() {
       </div>
     `;
 
+
     return;
+
   }
 
 
@@ -806,6 +1363,7 @@ function renderManualLinks() {
               selectedManualLinks.push(
                 url
               );
+
             }
 
           } else {
@@ -815,7 +1373,9 @@ function renderManualLinks() {
                 (item) =>
                   item !== url
               );
+
           }
+
         }
       );
 
@@ -892,8 +1452,10 @@ function renderManualLinks() {
       manualLinksList.appendChild(
         row
       );
+
     }
   );
+
 }
 
 
@@ -917,9 +1479,12 @@ async function scanLinksFromCurrentPage() {
           Could not find the source tab to scan.
         </div>
       `;
+
     }
 
+
     return;
+
   }
 
 
@@ -930,6 +1495,7 @@ async function scanLinksFromCurrentPage() {
         Scanning links...
       </div>
     `;
+
   }
 
 
@@ -939,21 +1505,27 @@ async function scanLinksFromCurrentPage() {
       await chrome.scripting.executeScript({
 
         target: {
+
           tabId:
             sourceTabId
+
         },
 
 
         args: [
+
           Boolean(
             isRestrictDomain
           ),
+
           String(
             currentPage || ""
           ),
+
           Boolean(
             isFocusMode
           )
+
         ],
 
 
@@ -985,6 +1557,7 @@ async function scanLinksFromCurrentPage() {
           if (focusMode) {
 
             searchScope =
+
               document.querySelector(
                 "article"
               ) ||
@@ -998,7 +1571,7 @@ async function scanLinksFromCurrentPage() {
               ) ||
 
               document.querySelector(
-                "#mw-content-text" /* NEW: Wikipedia specific support */
+                "#mw-content-text"
               ) ||
 
               document.querySelector(
@@ -1010,6 +1583,7 @@ async function scanLinksFromCurrentPage() {
               ) ||
 
               document;
+
           }
 
 
@@ -1021,15 +1595,18 @@ async function scanLinksFromCurrentPage() {
           ) {
 
             /*
-             * NEW: VISIBILITY CHECK
-             * Skip links that are hidden via CSS
-             * (display: none, visibility: hidden, etc.)
+             * VISIBILITY CHECK
+             *
+             * Skip links that are hidden
+             * via CSS.
              */
             if (
-              anchor.offsetWidth === 0 || 
+              anchor.offsetWidth === 0 ||
               anchor.offsetHeight === 0
             ) {
+
               continue;
+
             }
 
 
@@ -1059,65 +1636,113 @@ async function scanLinksFromCurrentPage() {
               !rawHref ||
               !absolute
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Ignore same-page fragment links.
+             */
             if (
               rawHref.startsWith(
                 "#"
               )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Ignore email links.
+             */
             if (
               absolute.startsWith(
                 "mailto:"
               )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Ignore telephone links.
+             */
             if (
               absolute.startsWith(
                 "tel:"
               )
             ) {
+
               continue;
+
             }
 
-            // Ignore Wikipedia meta/utility pages
+
+            /*
+             * Ignore Wikipedia
+             * meta/utility pages.
+             */
             if (
-              absolute.includes("/w/index.php") || 
-              absolute.includes("/wiki/Special:") ||
-              absolute.includes("/wiki/Wikipedia:") ||
-              absolute.includes("/wiki/Help:")
+              absolute.includes(
+                "/w/index.php"
+              ) ||
+
+              absolute.includes(
+                "/wiki/Special:"
+              ) ||
+
+              absolute.includes(
+                "/wiki/Wikipedia:"
+              ) ||
+
+              absolute.includes(
+                "/wiki/Help:"
+              )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Ignore JavaScript URLs.
+             */
             if (
               absolute.startsWith(
                 "javascript:"
               )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Ignore about: URLs.
+             */
             if (
               absolute.startsWith(
                 "about:"
               )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * Only allow normal
+             * HTTP/HTTPS pages.
+             */
             if (
               !absolute.startsWith(
                 "http://"
@@ -1126,10 +1751,17 @@ async function scanLinksFromCurrentPage() {
                 "https://"
               )
             ) {
+
               continue;
+
             }
 
 
+            /*
+             * If Restrict Domain is
+             * enabled, only keep links
+             * from the starting domain.
+             */
             if (
               restrictDomain
             ) {
@@ -1152,22 +1784,32 @@ async function scanLinksFromCurrentPage() {
                   startHost !==
                   linkHost
                 ) {
+
                   continue;
+
                 }
+
 
               } catch (e) {
 
                 continue;
+
               }
+
             }
 
 
+            /*
+             * Avoid duplicate links.
+             */
             if (
               seen.has(
                 absolute
               )
             ) {
+
               continue;
+
             }
 
 
@@ -1177,28 +1819,38 @@ async function scanLinksFromCurrentPage() {
 
 
             collected.push({
+
               text:
                 text ||
                 absolute,
 
               url:
                 absolute
+
             });
+
           }
 
 
           return collected;
+
         }
+
       });
 
 
     const collectedLinks =
+
       results &&
+
       results[0] &&
+
       Array.isArray(
         results[0].result
       )
+
         ? results[0].result
+
         : [];
 
 
@@ -1218,6 +1870,7 @@ async function scanLinksFromCurrentPage() {
 
     renderManualLinks();
 
+
   } catch (error) {
 
     console.error(
@@ -1233,8 +1886,11 @@ async function scanLinksFromCurrentPage() {
           Failed to scan links. Check permissions or reload the extension.
         </div>
       `;
+
     }
+
   }
+
 }
 
 
@@ -1257,6 +1913,21 @@ document.addEventListener(
     updateDepthOneUI();
 
 
+    /*
+     * NEW:
+     *
+     * Make sure the Package Organization
+     * section starts in the correct state.
+     *
+     * Default:
+     *   Custom fields hidden.
+     *
+     * Custom:
+     *   Custom fields visible.
+     */
+    updatePackageOrganizationUI();
+
+
     updateLocalVideoStatus();
 
 
@@ -1270,12 +1941,17 @@ document.addEventListener(
     sourceTabReady.then(
       () => {
 
-        if (isContextMenuLaunch) {
+        if (
+          isContextMenuLaunch
+        ) {
 
           openDownloadOptions();
+
         }
+
       }
     );
+
   }
 );
 
@@ -1301,8 +1977,11 @@ submitButton.addEventListener(
 
       e.preventDefault();
 
+
       openDownloadOptions();
+
     }
+
   }
 );
 
@@ -1313,6 +1992,7 @@ if (startDownloadButton) {
     "click",
     checkDownloadFlag
   );
+
 }
 
 
@@ -1324,18 +2004,26 @@ function getDownloadOptionsModal() {
 
   if (
     !downloadOptionsModalElement ||
-    typeof bootstrap === "undefined"
+    typeof bootstrap ===
+      "undefined"
   ) {
+
     return null;
+
   }
 
 
-  return bootstrap.Modal.getOrCreateInstance(
-    downloadOptionsModalElement
-  );
+  return bootstrap.Modal
+    .getOrCreateInstance(
+      downloadOptionsModalElement
+    );
+
 }
 
 
+/**
+ * Hide the Download Options modal.
+ */
 function hideDownloadOptionsModal() {
 
   const modal =
@@ -1343,11 +2031,18 @@ function hideDownloadOptionsModal() {
 
 
   if (modal) {
+
     modal.hide();
+
   }
+
 }
 
 
+/**
+ * Show the existing
+ * download-in-progress toast.
+ */
 function showDownloadInProgressToast() {
 
   const toast =
@@ -1357,6 +2052,7 @@ function showDownloadInProgressToast() {
 
 
   toast.show();
+
 }
 
 
@@ -1367,37 +2063,52 @@ function showDownloadInProgressToast() {
 function updateDownloadOptionsPageLabel() {
 
   if (!downloadOptionsPage) {
+
     return;
+
   }
 
 
   let label =
-    currentPage || "Current page";
+    currentPage ||
+    "Current page";
 
 
   try {
 
     const url =
-      new URL(currentPage);
+      new URL(
+        currentPage
+      );
+
 
     label =
-      url.hostname + url.pathname;
+      url.hostname +
+      url.pathname;
+
 
   } catch (error) {
-    // Keep the raw value.
+
+    /*
+     * Keep the raw value.
+     */
+
   }
 
 
   downloadOptionsPage.textContent =
     label;
 
+
   downloadOptionsPage.title =
     currentPage || "";
+
 }
 
 
 /**
  * Opens the download options popup.
+ *
  * If a crawl is already running,
  * shows the in-progress toast instead.
  */
@@ -1409,17 +2120,32 @@ async function openDownloadOptions() {
   chrome.storage.sync.get(
     (items) => {
 
-      if (items.downloadFlag) {
+      if (
+        items.downloadFlag
+      ) {
 
         showDownloadInProgressToast();
 
+
         return;
+
       }
 
 
       updateDownloadOptionsPageLabel();
 
+
       updateDepthOneUI();
+
+
+      /*
+       * NEW:
+       *
+       * Refresh Package Organization
+       * visibility whenever the modal
+       * is opened.
+       */
+      updatePackageOrganizationUI();
 
 
       const modal =
@@ -1427,13 +2153,15 @@ async function openDownloadOptions() {
 
 
       if (modal) {
+
         modal.show();
+
       }
+
     }
   );
+
 }
-
-
 /**
  * Checks whether a crawl
  * is already running.
@@ -1474,10 +2202,14 @@ function checkDownloadFlag() {
                   Please scan links and select at least one link before downloading.
                 </div>
               `;
+
             }
 
+
             return;
+
           }
+
         }
 
 
@@ -1494,19 +2226,25 @@ function checkDownloadFlag() {
 
           buttonTitle.innerText =
             "Foreground Crawl Running...";
+
         }
 
 
         sendToWindowInstance();
 
+
       } else {
 
         hideDownloadOptionsModal();
 
+
         showDownloadInProgressToast();
+
       }
+
     }
   );
+
 }
 
 
@@ -1515,14 +2253,25 @@ function checkDownloadFlag() {
 // ============================================================
 
 /**
- * Send crawl settings and
- * selected local videos to
- * the progress window.
+ * Send crawl settings, selected local videos,
+ * and package organization settings to the
+ * scraper progress window.
  *
- * File objects support the
- * browser's structured clone
- * algorithm, which BroadcastChannel
- * uses when sending messages.
+ * File objects support the browser's
+ * structured clone algorithm, which
+ * BroadcastChannel uses when sending messages.
+ *
+ * Message order:
+ *
+ * 1. starting URL
+ * 2. Focus Mode
+ * 3. Restrict Domain
+ * 4. crawl depth
+ * 5. source tab ID
+ * 6. Depth 1 mode
+ * 7. manually selected links
+ * 8. selected local videos
+ * 9. package configuration
  */
 function sendToWindowInstance() {
 
@@ -1535,26 +2284,50 @@ function sendToWindowInstance() {
   );
 
 
+  /*
+   * NEW:
+   *
+   * Read the current Package Organization
+   * settings immediately before starting
+   * the download.
+   */
+  const packageConfig =
+    getPackageConfig();
+
+
+  console.log(
+    "Sending package configuration:",
+    packageConfig
+  );
+
+
   broadcastChannel.postMessage([
+
     String(
       currentPage ?? ""
     ),
+
 
     Boolean(
       isFocusMode
     ),
 
+
     Boolean(
       isRestrictDomain
     ),
+
 
     Number(
       maxDepthValue || 0
     ),
 
+
     sourceTabId ?? null,
 
+
     depthOneMode,
+
 
     Array.isArray(
       selectedManualLinks
@@ -1562,9 +2335,8 @@ function sendToWindowInstance() {
       ? selectedManualLinks
       : [],
 
+
     /*
-     * NEW
-     *
      * Local videos selected
      * from the user's computer.
      */
@@ -1572,8 +2344,21 @@ function sendToWindowInstance() {
       selectedLocalVideos
     )
       ? selectedLocalVideos
-      : []
+      : [],
+
+
+    /*
+     * NEW:
+     *
+     * Package organization settings.
+     *
+     * This is the ninth value received
+     * by window.js.
+     */
+    packageConfig
+
   ]);
+
 }
 
 
@@ -1620,5 +2405,7 @@ function openWindow() {
     alert(
       "Please allow pop-ups for this website in order to download it."
     );
+
   }
+
 }

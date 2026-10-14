@@ -13,7 +13,6 @@
  * - Starts the final ZIP download
  */
 
-
 // ============================================================
 // IMPORTS
 // ============================================================
@@ -22,7 +21,6 @@ import {
   state,
   resetAssetState
 } from './state.js';
-
 
 import {
   updateProgress,
@@ -33,12 +31,10 @@ import {
   requestFallbackVideo
 } from './ui.js';
 
-
 import {
   getForegroundPageHtml,
   getForegroundLinks
 } from './crawler.js';
-
 
 import {
   processImages,
@@ -48,18 +44,15 @@ import {
   rewritePageLinks
 } from './assets.js';
 
-
 import {
   processVideos,
   addLocalVideosToZip
 } from './video.js';
 
-
 import {
   applyFocusMode,
   extractLinksFromHtml
 } from './focus-mode.js';
-
 
 // ============================================================
 // DOWNLOAD FLAG
@@ -72,23 +65,18 @@ import {
  * from starting another crawl while one is
  * already running.
  */
-const setDownloadFlag =
-  (isDownloading) => {
-
-    chrome.storage.sync.set({
-      downloadFlag:
-        isDownloading
-    });
-  };
-
+const setDownloadFlag = (isDownloading) => {
+  chrome.storage.sync.set({
+    downloadFlag: isDownloading
+  });
+};
 
 // ============================================================
 // PROCESS SINGLE PAGE
 // ============================================================
 
 /**
- * Passes a single page's HTML through all
- * processors.
+ * Passes a single page's HTML through all processors.
  *
  * Processing order:
  *
@@ -107,31 +95,22 @@ async function processHTML(
   savedPagesMap = null,
   isRootPage = false
 ) {
-
   let htmlData =
     html === ""
-      ? await getForegroundPageHtml(
-          inputUrl
-        )
+      ? await getForegroundPageHtml(inputUrl)
       : html;
-
 
   // ==========================================================
   // FOCUS MODE
   // ==========================================================
 
   if (state.isFocusMode) {
-
     try {
-
-      htmlData =
-        await applyFocusMode(
-          htmlData,
-          inputUrl
-        );
-
+      htmlData = await applyFocusMode(
+        htmlData,
+        inputUrl
+      );
     } catch (err) {
-
       console.error(
         "Focus Mode crashed. Using original HTML.",
         err
@@ -139,87 +118,70 @@ async function processHTML(
     }
   }
 
-
   // ==========================================================
   // ASSET PROCESSING
   // ==========================================================
 
-  htmlData =
-    await processImages(
-      htmlData,
-      inputUrl,
-      isRootPage
-    );
+  htmlData = await processImages(
+    htmlData,
+    inputUrl,
+    isRootPage
+  );
 
+  htmlData = await processPdfs(
+    htmlData,
+    inputUrl
+  );
 
-  htmlData =
-    await processPdfs(
-      htmlData,
-      inputUrl
-    );
+  htmlData = await processCSSAndImages(
+    htmlData,
+    inputUrl
+  );
 
-
-  htmlData =
-    await processCSSAndImages(
-      htmlData,
-      inputUrl
-    );
-
-
-  htmlData =
-    await processJss(
-      htmlData,
-      inputUrl
-    );
-
+  htmlData = await processJss(
+    htmlData,
+    inputUrl
+  );
 
   // ==========================================================
   // VIDEO PROCESSING
   // ==========================================================
 
   /*
-   * processVideos() attempts to download
-   * direct website videos.
+   * processVideos() attempts to download direct website videos.
    *
-   * If a video is detected but cannot be
-   * downloaded, video.js updates:
+   * If a video is detected but cannot be downloaded,
+   * video.js updates:
    *
    * state.videoFound
    * state.videoDownloadFailed
    * state.videoDownloaded
    *
-   * We use those values AFTER the crawl to
-   * determine whether the user should be
-   * offered the manual video fallback.
+   * We use those values AFTER the crawl to determine whether
+   * the user should be offered the manual video fallback.
    */
 
-  htmlData =
-    await processVideos(
-      htmlData,
-      inputUrl,
-      isRootPage
-    );
-
+  htmlData = await processVideos(
+    htmlData,
+    inputUrl,
+    isRootPage
+  );
 
   // ==========================================================
   // REWRITE PAGE LINKS
   // ==========================================================
 
   if (savedPagesMap) {
-
-    htmlData =
-      rewritePageLinks(
-        htmlData,
-        inputUrl,
-        savedPagesMap,
-        isRootPage
-      );
+    htmlData = rewritePageLinks(
+      htmlData,
+      inputUrl,
+      savedPagesMap,
+      isRootPage
+    );
   }
-
 
   return htmlData;
 }
-
 
 // ============================================================
 // PROCESS LINKS / CRAWL
@@ -228,83 +190,106 @@ async function processHTML(
 /**
  * Handles crawl depth logic.
  *
- * Currently:
- *
  * Depth 0:
  *   Save only the current page.
  *
  * Depth 1:
- *   Save the root page and its first-level
- *   linked pages.
+ *   Save the root page and its first-level linked pages.
  */
-async function processLinks() {
-<<<<<<< HEAD
-  const savedPagesMap = new Map();
 
+// ============================================================
+// PACKAGE PATH HELPERS
+// ============================================================
+
+/**
+ * Returns the configured folder used for
+ * saved Depth 1 HTML pages.
+ *
+ * Example:
+ *
+ * Default:
+ * pages
+ *
+ * Custom:
+ * related-reading
+ */
+function getPagesFolder() {
+
+  return (
+    state.packageConfig?.folders?.pages ||
+    "pages"
+  );
+
+}
+
+
+/**
+ * Creates the ZIP path for a saved
+ * first-level HTML page.
+ *
+ * Example:
+ *
+ * pages/article.html
+ *
+ * or:
+ *
+ * related-reading/article.html
+ */
+function getSavedPagePath(url) {
+
+  return (
+    getPagesFolder() +
+    "/" +
+    getTitle(url) +
+    ".html"
+  );
+
+}
+
+async function processLinks() {
+
+  // ==========================================================
   // DEPTH 0
+  // ==========================================================
+
   if (state.maxDepthValue == 0) {
     updateStatus("Saving current page...");
-    
-    // Map the single page
-    savedPagesMap.set(state.currentPage, getTitle(state.currentPage) + ".html");
-    
-    const html = await processHTML(state.currentPage);
-    state.zip.file(getTitle(state.currentPage) + ".html", html);
-    updateProgress(1, 1);
-  }
 
-  // DEPTH 1
-  else if (state.maxDepthValue == 1) {
-    updateStatus(state.depthOneMode === "manual" 
-      ? "Foreground crawl is running. Saving selected linked pages." 
-      : "Foreground crawl is running. Saving the starting page and first-level linked pages.");
-=======
+    const savedPagesMap = new Map();
 
+    const rootFilename =
+      getTitle(state.currentPage) + ".html";
 
-  // ==========================================================
-  // DEPTH 0
-  // ==========================================================
-
-  if (
-    state.maxDepthValue == 0
-  ) {
-
-    updateStatus(
-      "Saving current page..."
+    savedPagesMap.set(
+      state.currentPage,
+      rootFilename
     );
 
-
-    const html =
-      await processHTML(
-        state.currentPage
-      );
-
+    const html = await processHTML(
+      state.currentPage,
+      "",
+      savedPagesMap,
+      true
+    );
 
     state.zip.file(
-      getTitle(
-        state.currentPage
-      ) + ".html",
+      rootFilename,
       html
     );
 
+    updateProgress(1, 1);
 
-    updateProgress(
-      1,
-      1
-    );
-
+    // Generate an offline index for the saved page.
+    generateMasterIndex(savedPagesMap);
 
     return;
   }
 
-
   // ==========================================================
   // DEPTH 1
   // ==========================================================
 
-  if (
-    state.maxDepthValue == 1
-  ) {
+  if (state.maxDepthValue == 1) {
 
     updateStatus(
       state.depthOneMode === "manual"
@@ -312,10 +297,7 @@ async function processLinks() {
         : "Foreground crawl is running. Saving the starting page and first-level linked pages."
     );
 
->>>>>>> 16efa01 (Improve video download handling and fallback support)
-
     let urls;
-
 
     // ========================================================
     // MANUAL LINK SELECTION
@@ -325,82 +307,59 @@ async function processLinks() {
       state.depthOneMode === "manual" &&
       state.selectedManualLinks.length > 0
     ) {
-
-      urls =
-        new Set(
-          state.selectedManualLinks.filter(
-            (url) =>
-              url &&
-              !url.startsWith(
-                "javascript:"
-              ) &&
-              !url.startsWith(
-                "about:"
-              )
-          )
-        );
+      urls = new Set(
+        state.selectedManualLinks.filter(
+          (url) =>
+            url &&
+            !url.startsWith("javascript:") &&
+            !url.startsWith("about:")
+        )
+      );
     }
 
-<<<<<<< HEAD
-    // Map all URLs to their local file paths
-    savedPagesMap.set(state.currentPage, getTitle(state.currentPage) + ".html");
-    for (let url of urls) {
-      savedPagesMap.set(url, "html/" + getTitle(url) + ".html");
-=======
-
     // ========================================================
-    // FOCUS MODE LINKS
+    // FOCUS MODE LINK DISCOVERY
     // ========================================================
 
-    else if (
-      state.isFocusMode
-    ) {
+    else if (state.isFocusMode) {
 
       updateStatus(
         "Applying Focus Mode to find valid article links..."
       );
 
-
-      let rawHtml =
+      const rawHtml =
         await getForegroundPageHtml(
           state.currentPage
         );
 
-
-      let focusedHtml =
+      const focusedHtml =
         await applyFocusMode(
           rawHtml,
           state.currentPage
         );
 
-
-      urls =
-        extractLinksFromHtml(
-          focusedHtml,
-          state.currentPage,
-          state.isRestrictDomain
-        );
->>>>>>> 16efa01 (Improve video download handling and fallback support)
+      urls = extractLinksFromHtml(
+        focusedHtml,
+        state.currentPage,
+        state.isRestrictDomain
+      );
     }
 
-
-<<<<<<< HEAD
-    // Process Root Page
-    let rootHtml = await processHTML(state.currentPage, "", savedPagesMap, true);
-    state.zip.file(getTitle(state.currentPage) + ".html", rootHtml);
-=======
     // ========================================================
     // NORMAL LINK DISCOVERY
     // ========================================================
 
     else {
-
-      urls =
-        await getForegroundLinks(
-          state.currentPage
-        );
+      urls = await getForegroundLinks(
+        state.currentPage
+      );
     }
 
+    /*
+     * Normalize the result in case one of the
+     * link helpers returns an Array instead of a Set.
+     */
+    urls = new Set(urls || []);
 
     // ========================================================
     // SAVED PAGE MAP
@@ -409,54 +368,41 @@ async function processLinks() {
     const savedPagesMap =
       new Map();
 
-
     savedPagesMap.set(
       state.currentPage,
-      getTitle(
-        state.currentPage
-      ) + ".html"
+      getTitle(state.currentPage) +
+        ".html"
     );
 
-
-    for (
-      let url of urls
-    ) {
+    for (const url of urls) {
 
       savedPagesMap.set(
-        url,
-        "html/" +
-          getTitle(
-            url
-          ) +
-          ".html"
-      );
+  url,
+  getSavedPagePath(url)
+);
     }
-
 
     // ========================================================
     // PROGRESS TRACKING
     // ========================================================
 
-    let totalPages =
+    const totalPages =
       urls.size + 1;
-
 
     let completedPages =
       0;
-
 
     // ========================================================
     // ROOT PAGE
     // ========================================================
 
-    let rootHtml =
+    const rootHtml =
       await processHTML(
         state.currentPage,
         "",
         savedPagesMap,
         true
       );
-
 
     state.zip.file(
       getTitle(
@@ -465,30 +411,19 @@ async function processLinks() {
       rootHtml
     );
 
-
->>>>>>> 16efa01 (Improve video download handling and fallback support)
     completedPages++;
-
-<<<<<<< HEAD
-    // Process First-Level Pages
-    for (let url of urls) {
-=======
 
     updateProgress(
       completedPages,
       totalPages
     );
 
-
     // ========================================================
     // FIRST-LEVEL PAGES
     // ========================================================
 
-    for (
-      let url of urls
-    ) {
+    for (const url of urls) {
 
->>>>>>> 16efa01 (Improve video download handling and fallback support)
       try {
 
         updateStatus(
@@ -497,8 +432,7 @@ async function processLinks() {
             : "Foreground crawl is running. Saving linked pages..."
         );
 
-
-        let html =
+        const pageHtml =
           await processHTML(
             url,
             "",
@@ -506,28 +440,20 @@ async function processLinks() {
             false
           );
 
-
         state.zip.file(
-          "html/" +
-            getTitle(
-              url
-            ) +
-            ".html",
-          html
+          getSavedPagePath(url),
+          pageHtml
         );
 
-
         completedPages++;
-
 
         updateProgress(
           completedPages,
           totalPages
         );
 
-
         /*
-         * Allow the browser UI to update
+         * Give the browser a chance to repaint
          * between processed pages.
          */
         await new Promise(
@@ -536,7 +462,6 @@ async function processLinks() {
               resolve
             )
         );
-
 
       } catch (error) {
 
@@ -547,73 +472,17 @@ async function processLinks() {
         );
       }
     }
-<<<<<<< HEAD
-  } 
-  
 
-  // DEPTH > 1
+    // ========================================================
+    // MASTER OFFLINE INDEX
+    // ========================================================
 
-  else {
-    updateStatus("Depth greater than 1 is still experimental in this alpha build.");
-    return; // Exit early so we don't build an empty index
-  }
-
-
-  // GENERATE MASTER INDEX.HTML
-
-  updateStatus("Generating master index.html...");
-  
-  let indexHtml = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="utf-8">
-      <title>Offline Index</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f7f8fa; color: #222; }
-        .card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e9ecef; }
-        h1 { margin-top: 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; font-size: 1.5rem;}
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f0f2f5; }
-        li:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        a { text-decoration: none; color: #0d6efd; font-size: 1.1rem; font-weight: 600; }
-        a:hover { text-decoration: underline; }
-        .url { font-size: 0.85rem; color: #6c757d; word-break: break-all; margin-top: 4px; }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <h1>Offline Index</h1>
-        <p style="color: #6c757d; font-size: 0.9rem; margin-top: -5px; margin-bottom: 20px;">
-          Archived on: ${new Date().toLocaleString()}
-        </p>
-        <ul>
-  `;
-
-  for (const [originalUrl, localPath] of savedPagesMap.entries()) {
-    const safeTitle = getTitle(originalUrl);
-    indexHtml += `
-      <li>
-        <a href="${localPath}">${safeTitle}</a>
-        <div class="url">${originalUrl}</div>
-      </li>
-    `;
-  }
-
-  indexHtml += `
-        </ul>
-      </div>
-    </body>
-    </html>
-  `;
-
-  state.zip.file("index.html", indexHtml);
-=======
-
+    generateMasterIndex(
+      savedPagesMap
+    );
 
     return;
   }
-
 
   // ==========================================================
   // DEPTH > 1
@@ -622,9 +491,177 @@ async function processLinks() {
   updateStatus(
     "Depth greater than 1 is still experimental in this alpha build."
   );
->>>>>>> 16efa01 (Improve video download handling and fallback support)
 }
 
+// ============================================================
+// GENERATE MASTER INDEX
+// ============================================================
+
+function generateMasterIndex(
+  savedPagesMap
+) {
+
+  updateStatus(
+    "Generating master index.html..."
+  );
+
+  let indexHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Offline Index</title>
+
+      <style>
+
+        body {
+          font-family:
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            Roboto,
+            sans-serif;
+
+          padding: 2rem;
+          max-width: 800px;
+          margin: 0 auto;
+
+          background: #f7f8fa;
+          color: #222;
+        }
+
+        .card {
+          background: #fff;
+          padding: 1.5rem;
+
+          border-radius: 8px;
+
+          box-shadow:
+            0 2px 4px
+            rgba(0,0,0,0.1);
+
+          border:
+            1px solid #e9ecef;
+        }
+
+        h1 {
+          margin-top: 0;
+
+          border-bottom:
+            2px solid #f0f2f5;
+
+          padding-bottom: 10px;
+
+          font-size: 1.5rem;
+        }
+
+        ul {
+          list-style-type: none;
+          padding: 0;
+        }
+
+        li {
+          margin-bottom: 1rem;
+          padding-bottom: 1rem;
+
+          border-bottom:
+            1px solid #f0f2f5;
+        }
+
+        li:last-child {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        a {
+          text-decoration: none;
+          color: #0d6efd;
+
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        a:hover {
+          text-decoration: underline;
+        }
+
+        .url {
+          font-size: 0.85rem;
+          color: #6c757d;
+
+          word-break: break-all;
+          margin-top: 4px;
+        }
+
+      </style>
+    </head>
+
+    <body>
+
+      <div class="card">
+
+        <h1>
+          Offline Index
+        </h1>
+
+        <p
+          style="
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: -5px;
+            margin-bottom: 20px;
+          "
+        >
+          Archived on:
+          ${new Date().toLocaleString()}
+        </p>
+
+        <ul>
+  `;
+
+  for (
+    const [
+      originalUrl,
+      localPath
+    ] of savedPagesMap.entries()
+  ) {
+
+    const safeTitle =
+      getTitle(
+        originalUrl
+      );
+
+    indexHtml += `
+      <li>
+
+        <a href="${localPath}">
+          ${safeTitle}
+        </a>
+
+        <div class="url">
+          ${originalUrl}
+        </div>
+
+      </li>
+    `;
+  }
+
+  indexHtml += `
+        </ul>
+
+      </div>
+
+    </body>
+
+    </html>
+  `;
+
+  state.zip.file(
+    "index.html",
+    indexHtml
+  );
+}
 
 // ============================================================
 // MAIN SCRAPING PROCESS
@@ -644,7 +681,6 @@ export async function startScrapingProcess() {
 
   try {
 
-
     // ========================================================
     // RESET VIDEO STATE
     // ========================================================
@@ -661,14 +697,11 @@ export async function startScrapingProcess() {
     state.videoDownloadFailed =
       false;
 
-
     state.videoFound =
       false;
 
-
     state.videoDownloaded =
       false;
-
 
     // ========================================================
     // RESET PROGRESS UI
@@ -679,27 +712,22 @@ export async function startScrapingProcess() {
       currentProgress.innerText =
         "0%";
 
-
       currentProgress.style.display =
         "inline";
     }
-
 
     if (progressBar) {
 
       progressBar.style.display =
         "flex";
 
-
       progressBar.style.width =
         "0%";
     }
 
-
     updateStatus(
       "Foreground crawl is running. Please keep this window open."
     );
-
 
     // ========================================================
     // START CRAWL
@@ -707,6 +735,15 @@ export async function startScrapingProcess() {
 
     await processLinks();
 
+    console.log("=== VIDEO FALLBACK DEBUG ===");
+    console.log("videoFound:", state.videoFound);
+    console.log("videoDownloadFailed:", state.videoDownloadFailed);
+    console.log("videoDownloaded:", state.videoDownloaded);
+    console.log(
+      "selectedLocalVideos:",
+      state.selectedLocalVideos
+    );
+    console.log("============================");  
 
     // ========================================================
     // CHECK FOR EXISTING LOCAL VIDEO
@@ -716,8 +753,8 @@ export async function startScrapingProcess() {
       Array.isArray(
         state.selectedLocalVideos
       ) &&
-      state.selectedLocalVideos.length > 0;
-
+      state.selectedLocalVideos.length >
+        0;
 
     // ========================================================
     // AUTOMATIC VIDEO DOWNLOAD FAILED
@@ -743,11 +780,9 @@ export async function startScrapingProcess() {
         "Automatic website video download failed. Waiting for user fallback choice."
       );
 
-
       updateStatus(
         "Website video could not be downloaded automatically."
       );
-
 
       // ======================================================
       // WAIT FOR USER
@@ -756,8 +791,7 @@ export async function startScrapingProcess() {
       /*
        * This pauses startScrapingProcess().
        *
-       * ZIP generation will NOT begin until
-       * the user:
+       * ZIP generation will NOT begin until the user:
        *
        * - selects a replacement video
        *
@@ -769,7 +803,6 @@ export async function startScrapingProcess() {
       const fallbackFile =
         await requestFallbackVideo();
 
-
       // ======================================================
       // USER SELECTED REPLACEMENT VIDEO
       // ======================================================
@@ -780,7 +813,6 @@ export async function startScrapingProcess() {
           [
             fallbackFile
           ];
-
 
         console.log(
           "Fallback video selected:",
@@ -796,12 +828,10 @@ export async function startScrapingProcess() {
           }
         );
 
-
         updateStatus(
           "Replacement video selected."
         );
       }
-
 
       // ======================================================
       // USER CONTINUED WITHOUT VIDEO
@@ -813,13 +843,11 @@ export async function startScrapingProcess() {
           "User chose to continue without a replacement video."
         );
 
-
         updateStatus(
           "Continuing without the website video."
         );
       }
     }
-
 
     // ========================================================
     // ADD LOCAL VIDEO FILES
@@ -839,11 +867,13 @@ export async function startScrapingProcess() {
       Array.isArray(
         state.selectedLocalVideos
       ) &&
-      state.selectedLocalVideos.length > 0
+      state.selectedLocalVideos.length >
+        0
     ) {
 
       if (
-        state.selectedLocalVideos.length === 1
+        state.selectedLocalVideos.length ===
+        1
       ) {
 
         updateStatus(
@@ -857,10 +887,8 @@ export async function startScrapingProcess() {
         );
       }
 
-
       await addLocalVideosToZip();
     }
-
 
     // ========================================================
     // PREPARE ZIP
@@ -870,13 +898,11 @@ export async function startScrapingProcess() {
       "Preparing ZIP download..."
     );
 
-
     if (currentProgress) {
 
       currentProgress.innerText =
         "100%";
     }
-
 
     if (progressBar) {
 
@@ -884,16 +910,15 @@ export async function startScrapingProcess() {
         "100%";
     }
 
-
     // ========================================================
     // ZIP NAME
     // ========================================================
 
     const zipName =
-      new URL(
-        state.startingURLInput
-      ).hostname;
-
+  state.packageConfig?.packageName ||
+  new URL(
+    state.startingURLInput
+  ).hostname;
 
     // ========================================================
     // GENERATE ZIP
@@ -905,7 +930,6 @@ export async function startScrapingProcess() {
           "blob"
       });
 
-
     // ========================================================
     // CREATE DOWNLOAD URL
     // ========================================================
@@ -914,12 +938,10 @@ export async function startScrapingProcess() {
       "Starting download..."
     );
 
-
     const urlBlob =
       URL.createObjectURL(
         content
       );
-
 
     // ========================================================
     // START DOWNLOAD
@@ -937,7 +959,6 @@ export async function startScrapingProcess() {
         saveAs:
           true
       });
-
 
     // ========================================================
     // WAIT FOR DOWNLOAD TO COMPLETE
@@ -967,7 +988,6 @@ export async function startScrapingProcess() {
             listener
           );
 
-
           // ==================================================
           // SHOW FEEDBACK
           // ==================================================
@@ -979,7 +999,6 @@ export async function startScrapingProcess() {
             feedbackFormSection.style.display =
               "block";
           }
-
 
           // ==================================================
           // FINISH PROGRESS BAR
@@ -993,7 +1012,6 @@ export async function startScrapingProcess() {
               "100%";
           }
 
-
           if (
             progressBar
           ) {
@@ -1001,7 +1019,6 @@ export async function startScrapingProcess() {
             progressBar.style.width =
               "100%";
           }
-
 
           // ==================================================
           // COMPLETE
@@ -1011,29 +1028,23 @@ export async function startScrapingProcess() {
             "Download complete. Your ZIP should now be in Finder."
           );
 
-
           // Allow another scrape.
           setDownloadFlag(
             false
           );
-
 
           // Release temporary Blob URL.
           URL.revokeObjectURL(
             urlBlob
           );
 
-
-          // Reset asset/video state for
-          // the next download.
+          // Reset asset/video state for next download.
           resetAssetState();
         }
       }
     );
 
-
   } catch (error) {
-
 
     // ========================================================
     // ERROR HANDLING
@@ -1044,11 +1055,9 @@ export async function startScrapingProcess() {
       error
     );
 
-
     updateStatus(
       "Download failed. Check the console for details."
     );
-
 
     setDownloadFlag(
       false

@@ -1,298 +1,1445 @@
 /**
  * ASSET PROCESSING
- * Finds, downloads, and rewrites local paths for static assets like CSS, JavaScript, images, and PDFs.
+ * Finds, downloads, and rewrites local paths for static assets
+ * like CSS, JavaScript, images, and PDFs.
  */
 
 import { state } from './state.js';
 
-/**
- * Checks if a URL is a mailto, tel, javascript, or data URI.
- */
 
-export function isSkippableAssetUrl(url) {
-  if (!url || typeof url !== "string") return true;
+// ============================================================
+// PACKAGE PATH HELPERS
+// ============================================================
+
+/**
+ * Returns the configured assets root.
+ *
+ * Default:
+ * assets
+ */
+function getAssetsFolder() {
+
   return (
-    url.startsWith("about:") ||
-    url.startsWith("javascript:") ||
-    url.startsWith("data:") ||
-    url.startsWith("mailto:") ||
-    url.startsWith("tel:")
+    state.packageConfig?.folders?.assets ||
+    "assets"
   );
+
 }
 
+
 /**
- * Rewrites standard page anchors to point to locally saved HTML files.
+ * Returns one of the configured asset folders.
+ *
+ * Example:
+ *
+ * getAssetFolder("images")
+ *
+ * Default result:
+ *
+ * assets/images
  */
+function getAssetFolder(type) {
 
-export function rewritePageLinks(htmlData, inputUrl, savedPagesMap, isRootPage = false) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlData, "text/html");
+  const assetsFolder =
+    getAssetsFolder();
 
-  for (const anchor of doc.querySelectorAll("a[href]")) {
-    const href = anchor.getAttribute("href");
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.toLowerCase().endsWith(".pdf")) continue;
+
+  const defaults = {
+
+    images:
+      "images",
+
+    videos:
+      "videos",
+
+    documents:
+      "documents",
+
+    styles:
+      "styles",
+
+    scripts:
+      "scripts"
+
+  };
+
+
+  const folderName =
+    state.packageConfig?.folders?.[type] ||
+    defaults[type] ||
+    type;
+
+
+  return (
+    assetsFolder +
+    "/" +
+    folderName
+  );
+
+}
+
+
+/**
+ * Returns a relative asset path from
+ * the current HTML page.
+ *
+ * Root pages live at ZIP root:
+ *
+ * assets/images/photo.jpg
+ *
+ * Depth 1 pages live inside pages/:
+ *
+ * ../assets/images/photo.jpg
+ */
+function getAssetReference(
+  type,
+  filename,
+  isRootPage = false
+) {
+
+  const folder =
+    getAssetFolder(type);
+
+
+  const prefix =
+    (
+      state.maxDepthValue === 0 ||
+      isRootPage
+    )
+      ? ""
+      : "../";
+
+
+  return (
+    prefix +
+    folder +
+    "/" +
+    filename
+  );
+
+}
+
+
+/**
+ * Returns a path from a CSS file
+ * to an image.
+ *
+ * CSS files are stored in:
+ *
+ * assets/styles/
+ *
+ * Images are stored in:
+ *
+ * assets/images/
+ *
+ * Therefore CSS references:
+ *
+ * ../images/photo.jpg
+ */
+function getCssImageReference(
+  imageName
+) {
+
+  const imageFolder =
+    state.packageConfig?.folders?.images ||
+    "images";
+
+
+  return (
+    "../" +
+    imageFolder +
+    "/" +
+    imageName
+  );
+
+}
+
+
+// ============================================================
+// SKIPPABLE URL CHECK
+// ============================================================
+
+/**
+ * Checks if a URL is a mailto, tel,
+ * javascript, data URI, etc.
+ */
+export function isSkippableAssetUrl(
+  url
+) {
+
+  if (
+    !url ||
+    typeof url !== "string"
+  ) {
+
+    return true;
+
+  }
+
+
+  return (
+
+    url.startsWith("about:") ||
+
+    url.startsWith("javascript:") ||
+
+    url.startsWith("data:") ||
+
+    url.startsWith("mailto:") ||
+
+    url.startsWith("tel:")
+
+  );
+
+}
+
+
+// ============================================================
+// PAGE LINK REWRITING
+// ============================================================
+
+/**
+ * Rewrites standard page anchors to point
+ * to locally saved HTML files.
+ */
+export function rewritePageLinks(
+  htmlData,
+  inputUrl,
+  savedPagesMap,
+  isRootPage = false
+) {
+
+  const parser =
+    new DOMParser();
+
+
+  const doc =
+    parser.parseFromString(
+      htmlData,
+      "text/html"
+    );
+
+
+  for (
+    const anchor
+    of doc.querySelectorAll(
+      "a[href]"
+    )
+  ) {
+
+    const href =
+      anchor.getAttribute(
+        "href"
+      );
+
+
+    if (
+      !href ||
+
+      href.startsWith("#") ||
+
+      href.startsWith("mailto:") ||
+
+      href.startsWith("tel:") ||
+
+      href
+        .toLowerCase()
+        .endsWith(".pdf")
+    ) {
+
+      continue;
+
+    }
+
 
     let absoluteUrl;
+
+
     try {
-      absoluteUrl = new URL(href, inputUrl).href;
+
+      absoluteUrl =
+        new URL(
+          href,
+          inputUrl
+        ).href;
+
+
     } catch (e) {
+
       continue;
+
     }
 
-    if (savedPagesMap && savedPagesMap.has(absoluteUrl)) {
-      const localFile = savedPagesMap.get(absoluteUrl);
-      anchor.setAttribute("href", isRootPage ? localFile : "../" + localFile);
+
+    if (
+      savedPagesMap &&
+      savedPagesMap.has(
+        absoluteUrl
+      )
+    ) {
+
+      const localFile =
+        savedPagesMap.get(
+          absoluteUrl
+        );
+
+
+      anchor.setAttribute(
+        "href",
+        isRootPage
+          ? localFile
+          : "../" + localFile
+      );
+
     }
+
   }
-  return doc.documentElement.outerHTML;
+
+
+  return (
+    doc.documentElement.outerHTML
+  );
+
 }
 
+
+// ============================================================
+// CSS PROCESSING
+// ============================================================
+
 /**
- * Downloads external stylesheets and processes inline <style> blocks.
+ * Downloads external stylesheets
+ * and processes inline <style> blocks.
  */
+export async function processCSSAndImages(
+  htmlData,
+  inputUrl,
+  isRootPage = false
+) {
 
-export async function processCSSAndImages(htmlData, inputUrl) {
-  const parser = new DOMParser();
-  let doc = parser.parseFromString(htmlData, "text/html");
+  const parser =
+    new DOMParser();
 
-  for (let linkElement of doc.querySelectorAll('link[rel="stylesheet"]')) {
+
+  let doc =
+    parser.parseFromString(
+      htmlData,
+      "text/html"
+    );
+
+
+  const stylesFolder =
+    getAssetFolder(
+      "styles"
+    );
+
+
+  for (
+    let linkElement
+    of doc.querySelectorAll(
+      'link[rel="stylesheet"]'
+    )
+  ) {
+
     try {
-      let cssHref = linkElement.getAttribute("href");
-      if (!cssHref || isSkippableAssetUrl(cssHref)) continue;
 
-      if (!cssHref.startsWith("https://") && !cssHref.startsWith("http://")) {
-        cssHref = getAbsolutePath(cssHref, inputUrl).href;
+      let cssHref =
+        linkElement.getAttribute(
+          "href"
+        );
+
+
+      if (
+        !cssHref ||
+        isSkippableAssetUrl(
+          cssHref
+        )
+      ) {
+
+        continue;
+
       }
 
-      if (state.urlCSSs.includes(cssHref)) continue;
-      state.urlCSSs.push(cssHref);
 
-      const cssData = await getData(cssHref);
-      if (cssData !== "Failed" && cssData !== "") {
-        const processedCSS = await processCSSImages(cssData, cssHref);
-        state.zip.file("css/" + getTitle(cssHref) + ".css", processedCSS);
-        let cssFolderLocation = state.maxDepthValue === 0 ? "css/" : "../css/";
-        linkElement.setAttribute("href", cssFolderLocation + getTitle(cssHref) + ".css");
+      if (
+        !cssHref.startsWith(
+          "https://"
+        ) &&
+        !cssHref.startsWith(
+          "http://"
+        )
+      ) {
+
+        cssHref =
+          getAbsolutePath(
+            cssHref,
+            inputUrl
+          ).href;
+
       }
+
+
+      if (
+        state.urlCSSs.includes(
+          cssHref
+        )
+      ) {
+
+        continue;
+
+      }
+
+
+      state.urlCSSs.push(
+        cssHref
+      );
+
+
+      const cssData =
+        await getData(
+          cssHref
+        );
+
+
+      if (
+        cssData !== "Failed" &&
+        cssData !== ""
+      ) {
+
+        const processedCSS =
+          await processCSSImages(
+            cssData,
+            cssHref
+          );
+
+
+        const cssName =
+          getTitle(
+            cssHref
+          ) + ".css";
+
+
+        // Save CSS in configured folder.
+        state.zip.file(
+
+          stylesFolder +
+            "/" +
+            cssName,
+
+          processedCSS
+
+        );
+
+
+        // Rewrite HTML stylesheet reference.
+        linkElement.setAttribute(
+
+          "href",
+
+          getAssetReference(
+            "styles",
+            cssName,
+            isRootPage
+          )
+
+        );
+
+      }
+
+
     } catch (error) {
-      console.error("CSS processing error:", error);
+
+      console.error(
+        "CSS processing error:",
+        error
+      );
+
     }
+
   }
 
-  for (let styleElement of doc.querySelectorAll("style")) {
+
+  // ==========================================================
+  // INLINE CSS
+  // ==========================================================
+
+  for (
+    let styleElement
+    of doc.querySelectorAll(
+      "style"
+    )
+  ) {
+
     try {
-      let processedStyleContent = await processCSSImages(styleElement.textContent, inputUrl);
-      styleElement.textContent = processedStyleContent;
+
+      let processedStyleContent =
+        await processCSSImages(
+          styleElement.textContent,
+          inputUrl
+        );
+
+
+      /*
+       * processCSSImages normally returns
+       * paths relative to an external CSS file.
+       *
+       * Inline CSS lives inside the HTML page,
+       * so convert those image references back
+       * into HTML-relative paths.
+       */
+      const imageFolderName =
+        state.packageConfig?.folders?.images ||
+        "images";
+
+
+      const externalCssPrefix =
+        "../" +
+        imageFolderName +
+        "/";
+
+
+      const inlineImagePrefix =
+        (
+          state.maxDepthValue === 0 ||
+          isRootPage
+        )
+          ? getAssetFolder("images") + "/"
+          : "../" +
+            getAssetFolder("images") +
+            "/";
+
+
+      processedStyleContent =
+        processedStyleContent.split(
+          externalCssPrefix
+        ).join(
+          inlineImagePrefix
+        );
+
+
+      styleElement.textContent =
+        processedStyleContent;
+
+
     } catch (error) {
-      console.error("Inline CSS processing error:", error);
+
+      console.error(
+        "Inline CSS processing error:",
+        error
+      );
+
     }
+
   }
-  return doc.documentElement.outerHTML;
+
+
+  return (
+    doc.documentElement.outerHTML
+  );
+
 }
 
+
+// ============================================================
+// CSS IMAGE PROCESSING
+// ============================================================
+
 /**
- * Parses CSS text via regex to download background images and rewrite paths.
+ * Parses CSS text to download background
+ * images and rewrite their paths.
  */
+export async function processCSSImages(
+  cssData,
+  cssUrl
+) {
 
-export async function processCSSImages(cssData, cssUrl) {
-  const imageUrlRegex = /url\(["']?([^"')]+)["']?\)/g;
-  let downloadPromises = [];
+  const imageUrlRegex =
+    /url\(["']?([^"')]+)["']?\)/g;
 
-  const updatedCSS = cssData.replace(imageUrlRegex, (match, imageUrl) => {
-    let resolvedUrl = imageUrl;
-    if (imageUrl.startsWith("//")) {
-      resolvedUrl = "https:" + imageUrl;
-    } else if (!imageUrl.startsWith("https://") && !imageUrl.startsWith("http://")) {
-      resolvedUrl = getAbsolutePath(imageUrl, cssUrl).href;
-    }
 
-    if (isSkippableAssetUrl(resolvedUrl) || resolvedUrl.endsWith(".woff") || resolvedUrl.endsWith(".woff2") || resolvedUrl.endsWith(".ttf") || resolvedUrl.endsWith(".otf")) {
-      return match;
-    }
+  let downloadPromises =
+    [];
 
-    let imageName = resolvedUrl.substring(resolvedUrl.lastIndexOf("/") + 1).replace(/[&\/\\#,+()$~%'":*?<>{}]/g, "");
 
-    if (!state.urlImages.includes(imageName)) {
-      state.urlImages.push(imageName);
-      const promise = urlToPromise(resolvedUrl)
-        .then((imageData) => {
-          state.zip.file("img/" + imageName, imageData, { binary: true });
-        })
-        .catch(() => console.error(`Error fetching image from: ${resolvedUrl}`));
-      downloadPromises.push(promise);
-    }
-    return `url("../img/${imageName}")`;
-  });
+  const updatedCSS =
+    cssData.replace(
 
-  await Promise.all(downloadPromises);
+      imageUrlRegex,
+
+      (
+        match,
+        imageUrl
+      ) => {
+
+        let resolvedUrl =
+          imageUrl;
+
+
+        if (
+          imageUrl.startsWith(
+            "//"
+          )
+        ) {
+
+          resolvedUrl =
+            "https:" +
+            imageUrl;
+
+
+        } else if (
+
+          !imageUrl.startsWith(
+            "https://"
+          ) &&
+
+          !imageUrl.startsWith(
+            "http://"
+          )
+
+        ) {
+
+          resolvedUrl =
+            getAbsolutePath(
+              imageUrl,
+              cssUrl
+            ).href;
+
+        }
+
+
+        /*
+         * Ignore URLs we should not download.
+         *
+         * Fonts are still skipped for now.
+         */
+        if (
+
+          isSkippableAssetUrl(
+            resolvedUrl
+          ) ||
+
+          resolvedUrl.endsWith(
+            ".woff"
+          ) ||
+
+          resolvedUrl.endsWith(
+            ".woff2"
+          ) ||
+
+          resolvedUrl.endsWith(
+            ".ttf"
+          ) ||
+
+          resolvedUrl.endsWith(
+            ".otf"
+          )
+
+        ) {
+
+          return match;
+
+        }
+
+
+        let imageName =
+          resolvedUrl
+            .substring(
+              resolvedUrl.lastIndexOf("/") +
+              1
+            )
+            .replace(
+              /[&\/\\#,+()$~%'":*?<>{}]/g,
+              ""
+            );
+
+
+        /*
+         * Fallback in case the URL ends
+         * without a useful filename.
+         */
+        if (!imageName) {
+
+          imageName =
+            getSafeFilename(
+              resolvedUrl,
+              "png"
+            );
+
+        }
+
+
+        if (
+          !state.urlImages.includes(
+            imageName
+          )
+        ) {
+
+          state.urlImages.push(
+            imageName
+          );
+
+
+          const promise =
+            urlToPromise(
+              resolvedUrl
+            )
+
+              .then(
+                (imageData) => {
+
+                  state.zip.file(
+
+                    getAssetFolder(
+                      "images"
+                    ) +
+                      "/" +
+                      imageName,
+
+                    imageData,
+
+                    {
+                      binary:
+                        true
+                    }
+
+                  );
+
+                }
+              )
+
+              .catch(
+                () =>
+                  console.error(
+                    `Error fetching image from: ${resolvedUrl}`
+                  )
+              );
+
+
+          downloadPromises.push(
+            promise
+          );
+
+        }
+
+
+        /*
+         * External CSS is located in:
+         *
+         * assets/styles/
+         *
+         * Therefore images are reached via:
+         *
+         * ../images/file.png
+         *
+         * If the user renamed images to
+         * article-images:
+         *
+         * ../article-images/file.png
+         */
+        return (
+          `url("${getCssImageReference(imageName)}")`
+        );
+
+      }
+
+    );
+
+
+  await Promise.all(
+    downloadPromises
+  );
+
+
   return updatedCSS;
+
 }
+
+
+// ============================================================
+// PDF / DOCUMENT PROCESSING
+// ============================================================
 
 /**
  * Finds and downloads linked PDF documents.
  */
+export async function processPdfs(
+  htmlData,
+  inputUrl,
+  isRootPage = false
+) {
 
-export async function processPdfs(htmlData, inputUrl) {
-  const parser = new DOMParser();
-  let doc = parser.parseFromString(htmlData, "text/html");
+  const parser =
+    new DOMParser();
 
-  for (let anchorElement of doc.querySelectorAll('a[href$=".pdf"]')) {
+
+  let doc =
+    parser.parseFromString(
+      htmlData,
+      "text/html"
+    );
+
+
+  const documentsFolder =
+    getAssetFolder(
+      "documents"
+    );
+
+
+  for (
+    let anchorElement
+    of doc.querySelectorAll(
+      'a[href$=".pdf"]'
+    )
+  ) {
+
     try {
-      let pdfHref = anchorElement.getAttribute("href");
-      if (!pdfHref || isSkippableAssetUrl(pdfHref)) continue;
 
-      if (!pdfHref.startsWith("https://") && !pdfHref.startsWith("http://")) {
-        pdfHref = getAbsolutePath(pdfHref, inputUrl).href;
+      let pdfHref =
+        anchorElement.getAttribute(
+          "href"
+        );
+
+
+      if (
+        !pdfHref ||
+        isSkippableAssetUrl(
+          pdfHref
+        )
+      ) {
+
+        continue;
+
       }
 
-      if (state.urlPdfs.includes(pdfHref)) continue;
-      state.urlPdfs.push(pdfHref);
 
-      const pdfData = await getData(pdfHref);
-      if (pdfData !== "Failed" && pdfData !== "") {
-        
-        // 1. Get a safe, shortened filename
-        let baseName = getSafeFilename(pdfHref, "pdf");
-        
-        // 2. Ensure it is strictly unique inside the ZIP
-        let pdfName = baseName;
-        let counter = 2;
-        while (state.zip.file("pdf/" + pdfName)) {
-           // If it exists, append a counter (e.g., file_2.pdf)
-           const nameWithoutExt = baseName.substring(0, baseName.lastIndexOf("."));
-           pdfName = `${nameWithoutExt}_${counter}.pdf`;
-           counter++;
+      if (
+        !pdfHref.startsWith(
+          "https://"
+        ) &&
+        !pdfHref.startsWith(
+          "http://"
+        )
+      ) {
+
+        pdfHref =
+          getAbsolutePath(
+            pdfHref,
+            inputUrl
+          ).href;
+
+      }
+
+
+      if (
+        state.urlPdfs.includes(
+          pdfHref
+        )
+      ) {
+
+        continue;
+
+      }
+
+
+      state.urlPdfs.push(
+        pdfHref
+      );
+
+
+      const pdfData =
+        await getData(
+          pdfHref
+        );
+
+
+      if (
+        pdfData !== "Failed" &&
+        pdfData !== ""
+      ) {
+
+        // Get safe filename.
+        let baseName =
+          getSafeFilename(
+            pdfHref,
+            "pdf"
+          );
+
+
+        let pdfName =
+          baseName;
+
+
+        let counter =
+          2;
+
+
+        /*
+         * Ensure the document filename
+         * is unique inside the configured
+         * documents folder.
+         */
+        while (
+          state.zip.file(
+            documentsFolder +
+              "/" +
+              pdfName
+          )
+        ) {
+
+          const nameWithoutExt =
+            baseName.substring(
+              0,
+              baseName.lastIndexOf(
+                "."
+              )
+            );
+
+
+          pdfName =
+            `${nameWithoutExt}_${counter}.pdf`;
+
+
+          counter++;
+
         }
 
-        // 3. Save to ZIP and rewrite the HTML link
-        state.zip.file("pdf/" + pdfName, pdfData, { binary: true });
-        
-        let pdfFolderLocation = state.maxDepthValue === 0 ? "pdf/" : "../pdf/";
-        anchorElement.setAttribute("href", pdfFolderLocation + pdfName);
+
+        // Save PDF.
+        state.zip.file(
+
+          documentsFolder +
+            "/" +
+            pdfName,
+
+          pdfData,
+
+          {
+            binary:
+              true
+          }
+
+        );
+
+
+        // Rewrite HTML link.
+        anchorElement.setAttribute(
+
+          "href",
+
+          getAssetReference(
+            "documents",
+            pdfName,
+            isRootPage
+          )
+
+        );
+
       }
+
+
     } catch (error) {
-      console.error("PDF processing error:", error);
+
+      console.error(
+        "PDF processing error:",
+        error
+      );
+
     }
+
   }
-  return doc.documentElement.outerHTML;
+
+
+  return (
+    doc.documentElement.outerHTML
+  );
+
 }
 
+
+// ============================================================
+// IMAGE PROCESSING
+// ============================================================
+
 /**
- * Downloads standard <img> elements and updates their source to the local /img folder.
+ * Downloads standard <img> elements and
+ * updates their source to the configured
+ * image folder.
  */
+export async function processImages(
+  htmlData,
+  inputUrl,
+  isRootPage = false
+) {
 
-export async function processImages(htmlData, inputUrl, isRootPage = false) {
-  const parser = new DOMParser();
-  let doc = parser.parseFromString(htmlData, "text/html");
-  state.zip.folder("img");
+  const parser =
+    new DOMParser();
 
-  const downloadPromises = []; // NEW: Array to hold all concurrent downloads
 
-  for (let imgElement of doc.querySelectorAll("img")) {
+  let doc =
+    parser.parseFromString(
+      htmlData,
+      "text/html"
+    );
+
+
+  const imagesFolder =
+    getAssetFolder(
+      "images"
+    );
+
+
+  /*
+   * Explicitly create the image folder.
+   */
+  state.zip.folder(
+    imagesFolder
+  );
+
+
+  const downloadPromises =
+    [];
+
+
+  for (
+    let imgElement
+    of doc.querySelectorAll(
+      "img"
+    )
+  ) {
+
     try {
-      imgElement.removeAttribute("srcset");
-      imgElement.removeAttribute("data-srcset");
-      imgElement.removeAttribute("sizes");
 
-      let imgSrc = imgElement.getAttribute("src") || imgElement.getAttribute("data-src");
-      if (!imgSrc || imgSrc.includes("base64")) continue;
+      /*
+       * Remove responsive-image metadata
+       * so the browser uses our local src.
+       */
+      imgElement.removeAttribute(
+        "srcset"
+      );
 
-      if (imgSrc.startsWith("//")) {
-        imgSrc = "https:" + imgSrc;
-      } else if (!imgSrc.startsWith("https://") && !imgSrc.startsWith("http://")) {
-        imgSrc = new URL(imgSrc, inputUrl).href;
+
+      imgElement.removeAttribute(
+        "data-srcset"
+      );
+
+
+      imgElement.removeAttribute(
+        "sizes"
+      );
+
+
+      let imgSrc =
+
+        imgElement.getAttribute(
+          "src"
+        ) ||
+
+        imgElement.getAttribute(
+          "data-src"
+        );
+
+
+      if (
+        !imgSrc ||
+        imgSrc.includes(
+          "base64"
+        )
+      ) {
+
+        continue;
+
       }
 
-      let imageName = getSafeFilename(imgSrc, "png");
-      
-      if (!state.urlImages.includes(imageName)) {
-        state.urlImages.push(imageName);
-        
-        // NEW: Fire the download but don't await it here. Push it to the array.
-        const promise = urlToPromise(imgSrc)
-          .then((imageData) => {
-            state.zip.file("img/" + imageName, imageData, { binary: true });
-          })
-          .catch((fetchErr) => {
-            console.error("Download Failed:", imgSrc, fetchErr);
-          });
-          
-        downloadPromises.push(promise);
+
+      if (
+        imgSrc.startsWith(
+          "//"
+        )
+      ) {
+
+        imgSrc =
+          "https:" +
+          imgSrc;
+
+
+      } else if (
+
+        !imgSrc.startsWith(
+          "https://"
+        ) &&
+
+        !imgSrc.startsWith(
+          "http://"
+        )
+
+      ) {
+
+        imgSrc =
+          new URL(
+            imgSrc,
+            inputUrl
+          ).href;
+
       }
 
-      let imgFolderLocation = (state.maxDepthValue === 0 || isRootPage) ? "img/" : "../img/";
-      imgElement.setAttribute("src", imgFolderLocation + imageName);
+
+      let imageName =
+        getSafeFilename(
+          imgSrc,
+          "png"
+        );
+
+
+      if (
+        !state.urlImages.includes(
+          imageName
+        )
+      ) {
+
+        state.urlImages.push(
+          imageName
+        );
+
+
+        const promise =
+          urlToPromise(
+            imgSrc
+          )
+
+            .then(
+              (imageData) => {
+
+                state.zip.file(
+
+                  imagesFolder +
+                    "/" +
+                    imageName,
+
+                  imageData,
+
+                  {
+                    binary:
+                      true
+                  }
+
+                );
+
+              }
+            )
+
+            .catch(
+              (fetchErr) => {
+
+                console.error(
+                  "Download Failed:",
+                  imgSrc,
+                  fetchErr
+                );
+
+              }
+            );
+
+
+        downloadPromises.push(
+          promise
+        );
+
+      }
+
+
+      /*
+       * Rewrite <img src>.
+       *
+       * Root:
+       * assets/images/file.png
+       *
+       * Child:
+       * ../assets/images/file.png
+       */
+      imgElement.setAttribute(
+
+        "src",
+
+        getAssetReference(
+          "images",
+          imageName,
+          isRootPage
+        )
+
+      );
+
+
     } catch (error) {
-      console.error("Image loop error:", error);
+
+      console.error(
+        "Image loop error:",
+        error
+      );
+
     }
+
   }
-  
-  // NEW: Wait for every image to finish downloading at the exact same time
-  await Promise.all(downloadPromises);
-  
-  return doc.documentElement.outerHTML;
+
+
+  await Promise.all(
+    downloadPromises
+  );
+
+
+  return (
+    doc.documentElement.outerHTML
+  );
+
 }
 
+
+// ============================================================
+// JAVASCRIPT PROCESSING
+// ============================================================
+
 /**
- * Downloads external JavaScript files and rewrites script tags.
+ * Downloads external JavaScript files
+ * and rewrites script tags.
  */
+export async function processJss(
+  htmlData,
+  inputUrl,
+  isRootPage = false
+) {
 
-export async function processJss(htmlData, inputUrl) {
-  const parser = new DOMParser();
-  let doc = parser.parseFromString(htmlData, "text/html");
-  
-  const downloadPromises = [];
+  const parser =
+    new DOMParser();
 
-  for (let scriptElement of doc.querySelectorAll("script[src]")) {
+
+  let doc =
+    parser.parseFromString(
+      htmlData,
+      "text/html"
+    );
+
+
+  const downloadPromises =
+    [];
+
+
+  const scriptsFolder =
+    getAssetFolder(
+      "scripts"
+    );
+
+
+  for (
+    let scriptElement
+    of doc.querySelectorAll(
+      "script[src]"
+    )
+  ) {
+
     try {
-      let scriptSrc = scriptElement.getAttribute("src");
-      if (!scriptSrc || isSkippableAssetUrl(scriptSrc)) continue;
 
-      if (!scriptSrc.startsWith("https://") && !scriptSrc.startsWith("http://")) {
-        scriptSrc = getAbsolutePath(scriptSrc, inputUrl).href;
+      let scriptSrc =
+        scriptElement.getAttribute(
+          "src"
+        );
+
+
+      if (
+        !scriptSrc ||
+        isSkippableAssetUrl(
+          scriptSrc
+        )
+      ) {
+
+        continue;
+
       }
 
-      if (state.urlJSs.includes(scriptSrc)) continue;
-      state.urlJSs.push(scriptSrc);
 
-      // NEW: Push to promises array
-      const promise = getData(scriptSrc).then((jsData) => {
-        if (jsData !== "Failed" && jsData !== "") {
-          state.zip.file("js/" + getTitle(scriptSrc) + ".js", jsData);
-        }
-      }).catch((error) => console.error("JS processing error:", error));
-      
-      downloadPromises.push(promise);
+      if (
+        !scriptSrc.startsWith(
+          "https://"
+        ) &&
+        !scriptSrc.startsWith(
+          "http://"
+        )
+      ) {
 
-      let jsFolderLocation = state.maxDepthValue === 0 ? "js/" : "../js/";
-      scriptElement.setAttribute("src", jsFolderLocation + getTitle(scriptSrc) + ".js");
+        scriptSrc =
+          getAbsolutePath(
+            scriptSrc,
+            inputUrl
+          ).href;
+
+      }
+
+
+      if (
+        state.urlJSs.includes(
+          scriptSrc
+        )
+      ) {
+
+        continue;
+
+      }
+
+
+      state.urlJSs.push(
+        scriptSrc
+      );
+
+
+      const jsName =
+        getTitle(
+          scriptSrc
+        ) + ".js";
+
+
+      const promise =
+        getData(
+          scriptSrc
+        )
+
+          .then(
+            (jsData) => {
+
+              if (
+                jsData !== "Failed" &&
+                jsData !== ""
+              ) {
+
+                state.zip.file(
+
+                  scriptsFolder +
+                    "/" +
+                    jsName,
+
+                  jsData
+
+                );
+
+              }
+
+            }
+          )
+
+          .catch(
+            (error) =>
+              console.error(
+                "JS processing error:",
+                error
+              )
+          );
+
+
+      downloadPromises.push(
+        promise
+      );
+
+
+      /*
+       * Rewrite script source.
+       */
+      scriptElement.setAttribute(
+
+        "src",
+
+        getAssetReference(
+          "scripts",
+          jsName,
+          isRootPage
+        )
+
+      );
+
+
     } catch (error) {
-      console.error("JS loop error:", error);
+
+      console.error(
+        "JS loop error:",
+        error
+      );
+
     }
+
   }
-  
-  await Promise.all(downloadPromises);
-  
-  return doc.documentElement.outerHTML;
+
+
+  await Promise.all(
+    downloadPromises
+  );
+
+
+  return (
+    doc.documentElement.outerHTML
+  );
+
 }
 
-/**
- * Strips invalid filesystem characters from a URL to generate a safe local filename.
- */
 
-export function getSafeFilename(url, defaultExt = "file") {
-  let cleanUrl = String(url || "").split("?")[0].split("#")[0];
-  let filename = cleanUrl.substring(cleanUrl.lastIndexOf("/") + 1);
-  
-  filename = filename.replace(/[^a-zA-Z0-9.\-_]/g, "");
-  
-  if (filename.length > 100) {
-    filename = filename.substring(filename.length - 100);
+// ============================================================
+// SAFE FILENAME
+// ============================================================
+
+/**
+ * Strips invalid filesystem characters
+ * from a URL to generate a safe local filename.
+ */
+export function getSafeFilename(
+  url,
+  defaultExt = "file"
+) {
+
+  let cleanUrl =
+    String(
+      url || ""
+    )
+      .split("?")[0]
+      .split("#")[0];
+
+
+  let filename =
+    cleanUrl.substring(
+      cleanUrl.lastIndexOf("/") +
+      1
+    );
+
+
+  filename =
+    filename.replace(
+      /[^a-zA-Z0-9.\-_]/g,
+      ""
+    );
+
+
+  if (
+    filename.length >
+    100
+  ) {
+
+    filename =
+      filename.substring(
+        filename.length -
+        100
+      );
+
   }
-  
+
+
   if (!filename) {
-    filename = "asset_" + Math.floor(Math.random() * 100000) + "." + defaultExt;
+
+    filename =
+      "asset_" +
+      Math.floor(
+        Math.random() *
+        100000
+      ) +
+      "." +
+      defaultExt;
+
   }
-  
+
+
   return filename;
+
 }
