@@ -1,7 +1,6 @@
-import { state } from './modules/state.js';
-import { enforceWindowSize } from './modules/ui.js';
-import { startScrapingProcess } from './modules/scraper.js';
-
+import { state } from './modules/window/state.js';
+import { enforceWindowSize } from './modules/window/ui.js';
+import { startScrapingProcess } from './modules/window/scraper.js';
 
 // ============================================================
 // WINDOW EVENTS

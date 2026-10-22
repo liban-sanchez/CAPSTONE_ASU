@@ -24,18 +24,28 @@ export async function getSourceTab() {
  * Listens for Chrome tab updates and resolves when the page finishes loading.
  */
 
-export function waitForTabLoad(tabId) {
+export function waitForTabLoad(tabId, timeoutMs = 10000) {
   return new Promise((resolve) => {
+    let timeoutId;
+    
     function listener(updatedTabId, changeInfo, tab) {
       if (updatedTabId === tabId && changeInfo.status === "complete") {
         chrome.tabs.onUpdated.removeListener(listener);
+        clearTimeout(timeoutId);
         resolve(tab);
       }
     }
+    
     chrome.tabs.onUpdated.addListener(listener);
+
+    // Fallback: If the page takes too long, just scrape what is currently there.
+    timeoutId = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      console.warn(`Tab load timed out after ${timeoutMs}ms. Forcing scrape.`);
+      chrome.tabs.get(tabId, (tab) => resolve(tab));
+    }, timeoutMs);
   });
 }
-
 /**
  * Navigates the target tab to a new URL and waits for it to render.
  */

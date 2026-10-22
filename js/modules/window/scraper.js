@@ -56,6 +56,7 @@ import {
   extractLinksFromHtml
 } from './focus-mode.js';
 
+
 // ============================================================
 // DOWNLOAD FLAG
 // ============================================================
@@ -498,171 +499,62 @@ async function processLinks() {
 // ============================================================
 // GENERATE MASTER INDEX
 // ============================================================
+  // GENERATE MASTER INDEX.HTML
+
 
 function generateMasterIndex(
   savedPagesMap
 ) {
 
-  updateStatus(
-    "Generating master index.html..."
-  );
-
+  updateStatus("Generating master index.html...");
+  
+  // Identify the root page and check if it's the only page downloaded
+  const rootPagePath = savedPagesMap.values().next().value;
+  const isSinglePage = savedPagesMap.size === 1;
+  
   let indexHtml = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="utf-8">
-      <title>Offline Index</title>
-
+      <title>Offline Archive Index</title>
+      ${isSinglePage ? `<meta http-equiv="refresh" content="0; url=${rootPagePath}">` : ''}
       <style>
-
-        body {
-          font-family:
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            Roboto,
-            sans-serif;
-
-          padding: 2rem;
-          max-width: 800px;
-          margin: 0 auto;
-
-          background: #f7f8fa;
-          color: #222;
-        }
-
-        .card {
-          background: #fff;
-          padding: 1.5rem;
-
-          border-radius: 8px;
-
-          box-shadow:
-            0 2px 4px
-            rgba(0,0,0,0.1);
-
-          border:
-            1px solid #e9ecef;
-        }
-
-        h1 {
-          margin-top: 0;
-
-          border-bottom:
-            2px solid #f0f2f5;
-
-          padding-bottom: 10px;
-
-          font-size: 1.5rem;
-        }
-
-        ul {
-          list-style-type: none;
-          padding: 0;
-        }
-
-        li {
-          margin-bottom: 1rem;
-          padding-bottom: 1rem;
-
-          border-bottom:
-            1px solid #f0f2f5;
-        }
-
-        li:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
-        }
-
-        a {
-          text-decoration: none;
-          color: #0d6efd;
-
-          font-size: 1.1rem;
-          font-weight: 600;
-        }
-
-        a:hover {
-          text-decoration: underline;
-        }
-
-        .url {
-          font-size: 0.85rem;
-          color: #6c757d;
-
-          word-break: break-all;
-          margin-top: 4px;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f7f8fa; color: #222; }
+        .card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e9ecef; }
+        h1 { margin-top: 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; font-size: 1.5rem;}
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f0f2f5; }
+        li:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        a { text-decoration: none; color: #0d6efd; font-size: 1.1rem; font-weight: 600; }
+        a:hover { text-decoration: underline; }
+        .url { font-size: 0.85rem; color: #6c757d; word-break: break-all; margin-top: 4px; }
+        .badge { background: #0d6efd; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 8px; vertical-align: middle; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;}
       </style>
     </head>
-
     <body>
-
       <div class="card">
-
-        <h1>
-          Offline Index
-        </h1>
-
-        <p
-          style="
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin-top: -5px;
-            margin-bottom: 20px;
-          "
-        >
-          Archived on:
-          ${new Date().toLocaleString()}
+        <h1>Offline Archive Index</h1>
+        <p style="color: #6c757d; font-size: 0.9rem; margin-top: -5px; margin-bottom: 20px;">
+          Archived on: ${new Date().toLocaleString()}
         </p>
-
-        <ul>
+        ${isSinglePage ? `<p style="color: #6c757d;">Redirecting to your saved page...</p>` : ''}
+        <ul style="${isSinglePage ? 'display: none;' : ''}">
   `;
 
-  for (
-    const [
-      originalUrl,
-      localPath
-    ] of savedPagesMap.entries()
-  ) {
-
-    const safeTitle =
-      getTitle(
-        originalUrl
-      );
-
+  let isFirstItem = true;
+  for (const [originalUrl, localPath] of savedPagesMap.entries()) {
+    const safeTitle = getTitle(originalUrl);
     indexHtml += `
       <li>
-
-        <a href="${localPath}">
-          ${safeTitle}
-        </a>
-
-        <div class="url">
-          ${originalUrl}
-        </div>
-
+        <a href="${localPath}">${safeTitle}</a>
+        ${isFirstItem ? '<span class="badge">Main Page</span>' : ''}
+        <div class="url">${originalUrl}</div>
       </li>
     `;
+    isFirstItem = false;
   }
-
-  indexHtml += `
-        </ul>
-
-      </div>
-
-    </body>
-
-    </html>
-  `;
-
-  state.zip.file(
-    "index.html",
-    indexHtml
-  );
+  state.zip.file("index.html", indexHtml);
 }
 
 // ============================================================
@@ -1043,7 +935,7 @@ export async function startScrapingProcess() {
           // ==================================================
 
           updateStatus(
-            "Download complete. Your ZIP should now be in Finder."
+            "Download complete. Your ZIP should now be in your Downloads Folder."
           );
 
           finishDownloadTimer();
