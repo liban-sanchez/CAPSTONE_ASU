@@ -174,17 +174,11 @@
                   class="form-label fw-semibold text-dark"
                   for="choose-depth-input"
                 >
-                  <!--
-                    TODO (Oct 1 review): warn on high depth values.
-                    Explain the exponential page growth, e.g. 10 levels
-                    at 10 links per page. Decide whether "Max" prompts
-                    for a number, which conflicts with this 0-5 cap.
-                  -->
                   Crawl Depth
                   <span
                     class="gb-info"
                     tabindex="0"
-                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes."
+                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes. Each extra level multiplies the number of pages."
                   >i</span>
                 </label>
 
@@ -216,6 +210,18 @@
                 >
                   Depth 0 — just this page
                 </div>
+
+
+                <!--
+                  Shown from depth 2 up. The 0-5 slider is the cap;
+                  see handleDepthChange() in popup.js.
+                -->
+                <div
+                  id="depth-warning"
+                  class="gb-depth-warning"
+                  role="status"
+                  style="display: none;"
+                ></div>
               </div>
 
 
@@ -371,6 +377,62 @@
               >
 
                 <!-- ================================================= -->
+                <!-- RESTRICT DOMAIN -->
+                <!-- First switch: recommended for any crawl past depth 0 -->
+                <!-- ================================================= -->
+
+                <div
+                  class="mb-3"
+                >
+                  <div
+                    class="d-flex align-items-center justify-content-between"
+                  >
+                    <div>
+                      <label
+                        class="form-check-label fw-semibold text-dark"
+                        for="restrict-domain-toggle"
+                      >
+                        Restrict Domain
+                      </label>
+                    </div>
+
+
+                    <div
+                      class="d-flex align-items-center gap-2"
+                    >
+                      <span
+                        class="gb-info"
+                        tabindex="0"
+                        title="Only saves pages from this website. Keep it on for depth 1 and higher, or links to other websites get saved too."
+                      >i</span>
+
+
+                      <div
+                        class="form-check form-switch m-0"
+                      >
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="restrict-domain-toggle"
+                          name="restrict-domain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div
+                    id="restrict-domain-hint"
+                    class="gb-setting-hint"
+                    style="display: none;"
+                  >
+                    Recommended for depth 1 and up. Without it, pages from
+                    other websites are saved too.
+                  </div>
+                </div>
+
+
+                <!-- ================================================= -->
                 <!-- FOCUS MODE -->
                 <!-- ================================================= -->
 
@@ -405,52 +467,6 @@
                         type="checkbox"
                         id="focus-mode-toggle"
                         name="focus-mode"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-
-                <!-- ================================================= -->
-                <!-- RESTRICT DOMAIN -->
-                <!-- ================================================= -->
-
-                <div
-                  class="d-flex align-items-center justify-content-between mb-3"
-                >
-                  <div>
-                    <label
-                      class="form-check-label fw-semibold text-dark"
-                      <!--
-                        TODO (Oct 1 review): move Restrict Domain above
-                        the other switches and recommend keeping it on
-                        for any crawl deeper than one level.
-                      -->
-                      for="restrict-domain-toggle"
-                    >
-                      Restrict Domain
-                    </label>
-                  </div>
-
-
-                  <div
-                    class="d-flex align-items-center gap-2"
-                  >
-                    <span
-                      class="gb-info"
-                      tabindex="0"
-                      title="Only saves pages from the same website domain. Recommended with depth 1."
-                    >i</span>
-
-
-                    <div
-                      class="form-check form-switch m-0"
-                    >
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="restrict-domain-toggle"
-                        name="restrict-domain"
                       />
                     </div>
                   </div>
@@ -559,13 +575,17 @@
         </section>
       </section>
 
-
       <!-- ================================================= -->
-      <!-- LOCAL VIDEO IMPORT -->
+      <!-- VIDEO -->
+      <!-- Embedded video notice and local video import in -->
+      <!-- one block, under Download. Hidden unless the page -->
+      <!-- has video; see detectPageVideo() in popup.js. -->
       <!-- ================================================= -->
 
       <section
+        id="video-section"
         class="bg-white rounded shadow-sm border p-3 mb-3"
+        style="display: none;"
       >
         <div
           class="d-flex align-items-center justify-content-between mb-2"
@@ -573,46 +593,46 @@
           <div
             class="fw-semibold text-dark"
           >
-            <!--
-              TODO (Oct 1 review): fold embedded video support and this
-              local video picker into one video block, shown only after
-              Download when the page actually has video.
-            -->
-            Add Local Video
+            Video on this page
           </div>
 
-          <i
-            class="bi bi-camera-video text-muted"
-          ></i>
           <span
             class="gb-info"
             tabindex="0"
-            title="Videos already saved on your computer are added to the video/ folder in the final ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
+            title="Videos you add go into the video/ folder of the ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
           >i</span>
         </div>
 
 
-        <!-- Video File Picker -->
+        <div
+          id="video-detect-summary"
+          class="small text-muted mb-2"
+        ></div>
+
 
         <div
-          class="mb-2"
+          id="video-embedded-notice"
+          class="gb-video-notice mb-2"
+          style="display: none;"
+        ></div>
+
+
+        <!-- Video File Picker -->
+
+        <label
+          for="local-video-input"
+          class="form-label fw-semibold text-dark small mb-1"
         >
-          <label
-            for="local-video-input"
-            class="form-label fw-semibold text-dark"
-          >
-            Select Video File
-          </label>
+          Add a video from your computer
+        </label>
 
-          <input
-            type="file"
-            id="local-video-input"
-            class="form-control"
-            accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
-            multiple
-          />
-        </div>
-
+        <input
+          type="file"
+          id="local-video-input"
+          class="form-control form-control-sm"
+          accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
+          multiple
+        />
 
 
         <!-- Selected Video Status -->
@@ -627,7 +647,6 @@
             No local videos selected.
           </div>
         </div>
-
       </section>
 
 

@@ -81,7 +81,7 @@ Restrict Domain: Check this box if you want to restrict the scraping to the curr
     * A progress bar will appear, showing the current progress of the scraping process. 
 6. Download the Offline Website:
     * Once the scraping process is complete, the extension will generate a ZIP file containing the offline website. You will need to extract 
-    * The download will start automatically, and you will be prompted to save the ZIP file.
+    * The download will start automatically. The ZIP is saved to your browser's downloads folder, named after the site, the date and time, and the crawl depth (for example `example.org_2026-10-28_1152_depth1.zip`).
 7. View the Offline Website:
     * Extract the contents of the ZIP file to a folder on your computer.
     * Open the index.html file in any modern browser to view the offline website.

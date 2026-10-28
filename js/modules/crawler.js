@@ -21,13 +21,29 @@ export async function getSourceTab() {
 }
 
 /**
- * Listens for Chrome tab updates and resolves when the page finishes loading.
+ * A page that never finishes loading (a stuck ad, a stream, a
+ * missed "complete" event) used to stall the crawl forever.
+ * After this long the crawl saves whatever has loaded and moves on.
  */
 
-export function waitForTabLoad(tabId) {
+export const PAGE_LOAD_TIMEOUT_MS = 30000;
+
+/**
+ * Listens for Chrome tab updates and resolves when the page finishes loading,
+ * or after PAGE_LOAD_TIMEOUT_MS, whichever comes first.
+ */
+
+export function waitForTabLoad(tabId, timeoutMs = PAGE_LOAD_TIMEOUT_MS) {
   return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      console.warn(`Tab ${tabId} did not finish loading within ${timeoutMs / 1000}s. Saving what has loaded so far.`);
+      chrome.tabs.get(tabId).then(resolve, () => resolve(null));
+    }, timeoutMs);
+
     function listener(updatedTabId, changeInfo, tab) {
       if (updatedTabId === tabId && changeInfo.status === "complete") {
+        clearTimeout(timer);
         chrome.tabs.onUpdated.removeListener(listener);
         resolve(tab);
       }

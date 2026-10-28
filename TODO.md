@@ -23,24 +23,54 @@ Tracks the popup and crawl tab UI only. Everything else lives in Notion.
 
 From the Oct 1 review.
 
-- [ ] Warn when crawl depth is set high. Explain the exponential page growth.
-      Settle the conflict between the 0-5 slider and the "Max prompts for a
-      number" idea from the meeting
-- [ ] Move Restrict Domain above the other switches and recommend keeping it
-      on for multi-level crawls
-- [ ] Combine embedded video support and local video import into one block,
-      shown after Download only when the page has video
-- [ ] Reasonable defaults with a timeout, so a crawl is not stalled waiting
-      on input that never comes
-- [ ] Package naming for versioning the downloaded ZIP
-- [ ] Validate whether custom folder structure is actually needed. It was not
-      in the original spec
+- [x] Warn when crawl depth is set high. Depth 2 and up shows a warning with
+      the estimated page count (about 10 links a page, so x10 per level:
+      111 pages at depth 2, 111,111 at depth 5). It also says plainly that
+      depths above 1 are not crawled yet in this alpha.
+      Decision on the conflict: the 0-5 slider stays the cap and the "Max
+      prompts for a number" idea is dropped. An open number is how a crawl
+      runs away, and a prompt would stall the crawl waiting on input.
+- [x] Restrict Domain is now the first switch, and on by default. With depth 1
+      or higher and the switch off, a hint recommends turning it on.
+      (The old markup had an HTML comment inside the <label> tag; fixed.)
+- [x] Embedded video notice and local video import are one "Video on this
+      page" block under Download. The popup checks the page for <video>
+      elements and embedded players (YouTube, Vimeo, ...) and only shows the
+      block when it finds one. Note: on pages with no video there is now no
+      way to add a local video. Revisit if that matters.
+- [x] Reasonable defaults with a timeout:
+      - No Save As dialog. The ZIP goes straight to the downloads folder,
+        and a failed download now reports "Download failed" instead of
+        hanging.
+      - A page that never finishes loading is given 30 s
+        (PAGE_LOAD_TIMEOUT_MS in crawler.js), then the crawl saves what has
+        loaded and moves on.
+      - Restrict Domain on by default (see above).
+- [x] Package naming: site_YYYY-MM-DD_HHMM_depthN.zip, for example
+      example.org_2026-10-28_1152_depth1.zip (js/modules/package-name.js).
+      Duplicate names get Chrome's numbered suffix instead of overwriting.
+- [x] Custom folder structure: checked, not needed. Nothing on any branch
+      implements it, it was not in the original spec, and the offline copy
+      depends on the fixed layout (root page + html/, css/, js/, img/, pdf/,
+      video/): 17 hard-coded relative paths in assets.js, video.js and
+      scraper.js. Supporting custom layouts would mean reworking every path
+      rewrite. Recommend dropping it unless the sponsor asks for it.
+
+## Merge note
+
+origin/main has large rewrites of scraper.js and video.js that this branch
+does not have yet. The scraper.js changes here are small on purpose: import
+buildPackageName, build zipName with it, saveAs: false with
+conflictAction: "uniquify", the "interrupted" branch in the onChanged
+listener, and the "downloads folder" message. Re-apply those by hand if the
+merge conflicts.
 
 ## Known rough edges
 
 - [ ] Closing the background crawl tab mid-run kills the crawl with no warning
-- [ ] Bootstrap icons load from a CDN, so they disappear offline. The hover
-      badges avoid this, the camera icon does not
 - [ ] Background tabs can be throttled by Chrome. Switch the crawl tab to
       active if crawls feel slow
-- [ ] "Your ZIP should now be in Finder" is Mac-only wording
+- [x] "Your ZIP should now be in Finder" is Mac-only wording. Now names the
+      ZIP and says it is in the downloads folder
+- [x] The camera icon came from the CDN and vanished offline. Removed with
+      the old video block

@@ -9,6 +9,7 @@ import { getForegroundPageHtml, getForegroundLinks } from './crawler.js';
 import { processImages, processPdfs, processCSSAndImages, processJss, rewritePageLinks } from './assets.js';
 import { processVideos, addLocalVideosToZip } from './video.js';
 import { applyFocusMode, extractLinksFromHtml } from './focus-mode.js';
+import { buildPackageName } from './package-name.js';
 
 const setDownloadFlag = (isDownloading) => {
   chrome.storage.sync.set({ downloadFlag: isDownloading });
@@ -129,7 +130,7 @@ export async function startScrapingProcess() {
     if (currentProgress) currentProgress.innerText = "100%";
     if (progressBar) progressBar.style.width = "100%";
 
-    const zipName = new URL(state.startingURLInput).hostname;
+    const zipName = buildPackageName(state.startingURLInput, state.maxDepthValue);
     const content = await state.zip.generateAsync({ type: "blob" });
     
     updateStatus("Starting download...");
@@ -137,18 +138,29 @@ export async function startScrapingProcess() {
 
     const downloadId = await chrome.downloads.download({
       url: urlBlob,
-      filename: zipName + ".zip",
-      saveAs: true
+      filename: zipName,
+      // No Save As dialog: the crawl should never sit waiting on input.
+      // The ZIP goes to the browser's download folder under a dated name.
+      saveAs: false,
+      conflictAction: "uniquify"
     });
 
     chrome.downloads.onChanged.addListener(function listener(downloadItem) {
+      if (downloadItem.id === downloadId && downloadItem.state && downloadItem.state.current === "interrupted") {
+        chrome.downloads.onChanged.removeListener(listener);
+        updateStatus("Download failed. Chrome could not save the ZIP.");
+        setDownloadFlag(false);
+        URL.revokeObjectURL(urlBlob);
+        resetAssetState();
+        return;
+      }
       if (downloadItem.id === downloadId && downloadItem.state && downloadItem.state.current === "complete") {
         chrome.downloads.onChanged.removeListener(listener);
         if (feedbackFormSection) feedbackFormSection.style.display = "block";
         if (currentProgress) currentProgress.innerText = "100%";
         if (progressBar) progressBar.style.width = "100%";
         
-        updateStatus("Download complete. Your ZIP should now be in Finder.");
+        updateStatus("Download complete. " + zipName + " is in your downloads folder.");
         setDownloadFlag(false);
         URL.revokeObjectURL(urlBlob);
         resetAssetState();

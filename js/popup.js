@@ -302,7 +302,7 @@ const manualLinksList =
 // ============================================================
 
 let isFocusMode = false;
-let isRestrictDomain = false;
+let isRestrictDomain = true;
 let maxDepthValue = 0;
 
 let depthOneMode = "all";
@@ -478,6 +478,220 @@ function updateLocalVideoStatus() {
 
 
 // ============================================================
+// VIDEO ON THIS PAGE
+// ============================================================
+
+/*
+ * Embedded video support and local video import share one
+ * block under Download. It stays hidden unless the page has
+ * video, so pages without any keep a short popup.
+ *
+ * Direct <video> files are saved with the page automatically.
+ * Embedded players (YouTube, Vimeo, ...) and streamed video
+ * cannot be saved yet, so the block suggests adding a copy
+ * from the user's computer instead.
+ */
+const videoSection =
+  document.getElementById("video-section");
+
+const videoDetectSummary =
+  document.getElementById("video-detect-summary");
+
+const videoEmbeddedNotice =
+  document.getElementById("video-embedded-notice");
+
+
+function plural(count, one, many) {
+
+  return count === 1
+    ? "1 " + one
+    : count + " " + many;
+}
+
+
+/**
+ * Count the videos on the source page.
+ * Leaves the block hidden if the page cannot
+ * be read (chrome:// pages, the Web Store) or
+ * while a crawl is moving the tab around.
+ */
+async function detectPageVideo() {
+
+  if (
+    !videoSection ||
+    !sourceTabId
+  ) {
+    return;
+  }
+
+
+  const { downloadFlag } =
+    await chrome.storage.sync.get("downloadFlag");
+
+
+  if (downloadFlag) {
+    return;
+  }
+
+
+  let found = null;
+
+
+  try {
+
+    const results =
+      await chrome.scripting.executeScript({
+
+        target: {
+          tabId:
+            sourceTabId
+        },
+
+
+        func: () => {
+
+          const playerHosts =
+            /(youtube\.com|youtube-nocookie\.com|youtu\.be|vimeo\.com|dailymotion\.com|wistia\.(com|net)|loom\.com|jwplayer|brightcove|twitch\.tv|facebook\.com\/plugins\/video)/i;
+
+
+          let direct = 0;
+
+          let streamed = 0;
+
+
+          for (const video of document.querySelectorAll("video")) {
+
+            const sources = [
+              video.getAttribute("src"),
+              ...Array.from(
+                video.querySelectorAll("source[src]"),
+                (source) => source.getAttribute("src")
+              )
+            ].filter(Boolean);
+
+
+            /*
+             * Blob URLs and players fed by script
+             * (no src at all) are streamed, which the
+             * scraper cannot save.
+             */
+            if (
+              sources.some(
+                (src) => !src.startsWith("blob:")
+              )
+            ) {
+              direct++;
+            } else {
+              streamed++;
+            }
+          }
+
+
+          let embedded = 0;
+
+
+          for (const frame of document.querySelectorAll("iframe[src], embed[src]")) {
+
+            if (
+              playerHosts.test(
+                frame.getAttribute("src") || ""
+              )
+            ) {
+              embedded++;
+            }
+          }
+
+
+          return {
+            direct,
+            streamed,
+            embedded
+          };
+        }
+      });
+
+
+    found =
+      results &&
+      results[0]
+        ? results[0].result
+        : null;
+
+  } catch (error) {
+
+    console.warn(
+      "Could not check this page for video:",
+      error
+    );
+  }
+
+
+  renderVideoSection(found);
+}
+
+
+function renderVideoSection(found) {
+
+  const direct =
+    found ? Number(found.direct) || 0 : 0;
+
+  const unsaveable =
+    found
+      ? (Number(found.streamed) || 0) +
+        (Number(found.embedded) || 0)
+      : 0;
+
+
+  if (direct + unsaveable === 0) {
+
+    videoSection.style.display =
+      "none";
+
+    return;
+  }
+
+
+  if (videoDetectSummary) {
+
+    videoDetectSummary.textContent =
+      direct > 0
+        ? plural(direct, "video", "videos") +
+          " on this page will be saved with it."
+        : "";
+
+    videoDetectSummary.style.display =
+      direct > 0
+        ? "block"
+        : "none";
+  }
+
+
+  if (videoEmbeddedNotice) {
+
+    videoEmbeddedNotice.textContent =
+      plural(
+        unsaveable,
+        "embedded video player",
+        "embedded video players"
+      ) +
+      " (YouTube, Vimeo or similar) can't be saved yet. " +
+      "The rest of the page still saves normally. " +
+      "To include the video, add a copy from your computer below.";
+
+    videoEmbeddedNotice.style.display =
+      unsaveable > 0
+        ? "block"
+        : "none";
+  }
+
+
+  videoSection.style.display =
+    "block";
+}
+
+
+
+// ============================================================
 // DEPTH MODE
 // ============================================================
 
@@ -495,6 +709,119 @@ const DEPTH_LABELS = [
 ];
 
 
+/*
+ * HIGH DEPTH WARNING (Oct 1 review)
+ *
+ * The 0-5 slider stays the cap. The meeting's idea of a
+ * "Max" setting that prompts for any number was dropped:
+ * an open number box is exactly how a crawl runs away, and
+ * a prompt would stall the crawl waiting on input.
+ *
+ * Instead, depth 2 and up shows how fast the page count
+ * grows. The estimate assumes about 10 links per page,
+ * so each level multiplies the total by 10.
+ */
+const depthWarning =
+  document.getElementById("depth-warning");
+
+const LINKS_PER_PAGE_ESTIMATE = 10;
+
+const DEPTH_WARNING_FROM = 2;
+
+/*
+ * scraper.js only crawls depth 0 and 1 in this alpha.
+ * Raise this when deeper crawls are implemented.
+ */
+const HIGHEST_CRAWLED_DEPTH = 1;
+
+
+/**
+ * Pages reached at a given depth:
+ * 1 + 10 + 100 + ... one term per level.
+ */
+function estimatePageCount(depth) {
+
+  let total = 0;
+
+  for (let level = 0; level <= depth; level++) {
+
+    total +=
+      Math.pow(LINKS_PER_PAGE_ESTIMATE, level);
+  }
+
+  return total;
+}
+
+
+function updateDepthWarning() {
+
+  if (!depthWarning) {
+    return;
+  }
+
+
+  if (maxDepthValue < DEPTH_WARNING_FROM) {
+
+    depthWarning.style.display =
+      "none";
+
+    return;
+  }
+
+
+  const pages =
+    estimatePageCount(maxDepthValue)
+      .toLocaleString();
+
+
+  depthWarning.textContent = "";
+
+
+  const title =
+    document.createElement("strong");
+
+  title.textContent =
+    "This crawl can get very large";
+
+
+  const growth =
+    document.createElement("div");
+
+  growth.textContent =
+    "Each level multiplies the number of pages. " +
+    "At about " + LINKS_PER_PAGE_ESTIMATE +
+    " links a page, depth " + maxDepthValue +
+    " can reach " + pages + " pages and take hours." +
+    (isRestrictDomain
+      ? ""
+      : " With Restrict Domain off it can be far more.");
+
+
+  depthWarning.append(title, growth);
+
+
+  if (maxDepthValue > HIGHEST_CRAWLED_DEPTH) {
+
+    const note =
+      document.createElement("div");
+
+    note.className =
+      "gb-depth-warning-note";
+
+    note.textContent =
+      "Depths above " + HIGHEST_CRAWLED_DEPTH +
+      " are not crawled yet in this alpha, so the " +
+      "download will be empty. Use depth 0 or 1 for now.";
+
+    depthWarning.append(note);
+  }
+
+
+  depthWarning.style.display =
+    "block";
+}
+
+
 function handleDepthChange() {
 
   maxDepthValue =
@@ -510,6 +837,10 @@ function handleDepthChange() {
       ("Depth " + maxDepthValue);
   }
 
+
+  updateDepthWarning();
+
+  updateRestrictDomainHint();
 
   updateDepthOneUI();
 }
@@ -552,6 +883,33 @@ focusMode.addEventListener(
 // RESTRICT DOMAIN
 // ============================================================
 
+const restrictDomainHint =
+  document.getElementById("restrict-domain-hint");
+
+
+/**
+ * Recommend Restrict Domain whenever the crawl
+ * goes past the current page and it is off.
+ */
+function updateRestrictDomainHint() {
+
+  if (!restrictDomainHint) {
+    return;
+  }
+
+
+  const shouldRecommend =
+    Number(maxDepthValue) >= 1 &&
+    !isRestrictDomain;
+
+
+  restrictDomainHint.style.display =
+    shouldRecommend
+      ? "block"
+      : "none";
+}
+
+
 restrictDomain.addEventListener(
   "change",
   (e) => {
@@ -565,6 +923,11 @@ restrictDomain.addEventListener(
       isRestrictDomain:
         isRestrictDomain
     });
+
+
+    updateRestrictDomainHint();
+
+    updateDepthWarning();
   }
 );
 
@@ -835,9 +1198,13 @@ function fillOptions() {
         false;
 
 
+      /*
+       * On by default. Keeping a crawl on one site is
+       * the safe choice, and the user can turn it off.
+       */
       isRestrictDomain =
         items.isRestrictDomain ??
-        false;
+        true;
 
 
       if (focusMode) {
@@ -856,6 +1223,9 @@ function fillOptions() {
             isRestrictDomain
           );
       }
+
+
+      updateRestrictDomainHint();
     }
   );
 }
@@ -1439,7 +1809,12 @@ document.addEventListener(
      * the page picked from the right-click menu.
      */
     sourceTabReady.then(
-      updateDownloadOptionsPageLabel
+      () => {
+
+        updateDownloadOptionsPageLabel();
+
+        detectPageVideo();
+      }
     );
   }
 );

@@ -387,6 +387,45 @@ body.gb-worker {
 }
 
 /* =========================
+   NEW: High Depth Warning
+   Shown from depth 2 up, with an
+   estimate of how many pages a crawl
+   at that depth can reach.
+   ========================= */
+.gb-depth-warning,
+.gb-video-notice {
+  padding: 8px 10px;
+  border: 1px solid #f5d38a;
+  border-radius: 6px;
+  background: #fff8e6;
+  color: #7a4b00;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gb-depth-warning {
+  margin-top: 8px;
+}
+
+.gb-depth-warning strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.gb-depth-warning-note {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* NEW: small recommendation under a switch */
+.gb-setting-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #7a4b00;
+}
+
+/* =========================
    NEW: Download Dial
    The progress ring is drawn around
    the download button itself, so the
