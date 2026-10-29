@@ -178,7 +178,7 @@
                   <span
                     class="gb-info"
                     tabindex="0"
-                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes. Each extra level multiplies the number of pages."
+                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes. Each extra level multiplies the number of pages. Max lets you type a larger number."
                   >i</span>
                 </label>
 
@@ -187,7 +187,7 @@
                   id="choose-depth-input"
                   name="choose-depth"
                   min="0"
-                  max="5"
+                  max="6"
                   step="1"
                   value="0"
                   class="form-range gb-depth-range"
@@ -202,6 +202,36 @@
                   <span>3</span>
                   <span>4</span>
                   <span>5</span>
+                  <span>Max</span>
+                </div>
+
+
+                <!--
+                  "Max" (Oct 1 review) asks for a number inline rather
+                  than with a blocking prompt, so a crawl never waits on
+                  input. It starts at 10 and accepts 6-20.
+                -->
+                <div
+                  id="custom-depth-row"
+                  class="gb-custom-depth"
+                  style="display: none;"
+                >
+                  <label
+                    for="custom-depth-input"
+                    class="small fw-semibold text-dark mb-0"
+                  >
+                    Levels deep
+                  </label>
+
+                  <input
+                    type="number"
+                    id="custom-depth-input"
+                    class="form-control form-control-sm"
+                    min="6"
+                    max="20"
+                    step="1"
+                    value="10"
+                  />
                 </div>
 
                 <div
@@ -213,8 +243,8 @@
 
 
                 <!--
-                  Shown from depth 2 up. The 0-5 slider is the cap;
-                  see handleDepthChange() in popup.js.
+                  Shown from depth 2 up, including Max;
+                  see updateDepthWarning() in popup.js.
                 -->
                 <div
                   id="depth-warning"

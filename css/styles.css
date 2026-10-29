@@ -417,6 +417,17 @@ body.gb-worker {
   font-weight: 600;
 }
 
+/* NEW: number field shown when the depth slider is on "Max" */
+.gb-custom-depth {
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gb-custom-depth input {
+  width: 80px;
+}
+
 /* NEW: small recommendation under a switch */
 .gb-setting-hint {
   margin-top: 4px;

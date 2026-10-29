@@ -710,17 +710,92 @@ const DEPTH_LABELS = [
 
 
 /*
- * HIGH DEPTH WARNING (Oct 1 review)
+ * HIGH DEPTH WARNING AND "MAX" (Oct 1 review)
  *
- * The 0-5 slider stays the cap. The meeting's idea of a
- * "Max" setting that prompts for any number was dropped:
- * an open number box is exactly how a crawl runs away, and
- * a prompt would stall the crawl waiting on input.
+ * The slider runs 0-5, plus a last "Max" stop. Max shows a
+ * number field (6-20, starting at 10) instead of a blocking
+ * prompt, so the crawl never sits waiting on input.
  *
- * Instead, depth 2 and up shows how fast the page count
- * grows. The estimate assumes about 10 links per page,
- * so each level multiplies the total by 10.
+ * Depth 2 and up shows how fast the page count grows. The
+ * estimate assumes about 10 links per page, so each level
+ * multiplies the total by 10: depth 10 is about 11 billion.
  */
+const customDepthRow =
+  document.getElementById("custom-depth-row");
+
+const customDepthInput =
+  document.getElementById("custom-depth-input");
+
+const MAX_DEPTH_STOP = 6;
+
+const CUSTOM_DEPTH_MIN = 6;
+
+const CUSTOM_DEPTH_MAX = 20;
+
+const CUSTOM_DEPTH_DEFAULT = 10;
+
+
+/**
+ * The typed depth, kept inside 6-20.
+ * An empty or invalid entry falls back to 10.
+ */
+function readCustomDepth() {
+
+  const raw =
+    customDepthInput
+      ? String(customDepthInput.value).trim()
+      : "";
+
+
+  let value =
+    Math.round(
+      Number(raw)
+    );
+
+
+  if (
+    raw === "" ||
+    !Number.isFinite(value)
+  ) {
+
+    value =
+      CUSTOM_DEPTH_DEFAULT;
+  }
+
+
+  return Math.min(
+    CUSTOM_DEPTH_MAX,
+    Math.max(
+      CUSTOM_DEPTH_MIN,
+      value
+    )
+  );
+}
+
+
+/**
+ * Page counts get too long to read past a million,
+ * so large ones are written out: "11 billion".
+ */
+function formatPageCount(count) {
+
+  if (count >= 1e15) {
+    return "over a quadrillion";
+  }
+
+
+  if (count < 1e6) {
+    return count.toLocaleString("en-US");
+  }
+
+
+  return "about " +
+    new Intl.NumberFormat("en-US", {
+      notation: "compact",
+      compactDisplay: "long",
+      maximumFractionDigits: 0
+    }).format(count);
+}
 const depthWarning =
   document.getElementById("depth-warning");
 
@@ -770,8 +845,9 @@ function updateDepthWarning() {
 
 
   const pages =
-    estimatePageCount(maxDepthValue)
-      .toLocaleString();
+    formatPageCount(
+      estimatePageCount(maxDepthValue)
+    );
 
 
   depthWarning.textContent = "";
@@ -791,7 +867,7 @@ function updateDepthWarning() {
     "Each level multiplies the number of pages. " +
     "At about " + LINKS_PER_PAGE_ESTIMATE +
     " links a page, depth " + maxDepthValue +
-    " can reach " + pages + " pages and take hours." +
+    " can reach " + pages + " pages and take hours or more." +
     (isRestrictDomain
       ? ""
       : " With Restrict Domain off it can be far more.");
@@ -824,17 +900,37 @@ function updateDepthWarning() {
 
 function handleDepthChange() {
 
-  maxDepthValue =
+  const stop =
     Number(
       depthMode.value || 0
     );
 
 
+  const isMax =
+    stop === MAX_DEPTH_STOP;
+
+
+  if (customDepthRow) {
+
+    customDepthRow.style.display =
+      isMax
+        ? "flex"
+        : "none";
+  }
+
+
+  maxDepthValue =
+    isMax
+      ? readCustomDepth()
+      : stop;
+
+
   if (depthReadout) {
 
     depthReadout.innerText =
-      DEPTH_LABELS[maxDepthValue] ||
-      ("Depth " + maxDepthValue);
+      isMax
+        ? "Max \u2014 " + maxDepthValue + " levels deep, the largest crawls"
+        : (DEPTH_LABELS[stop] || ("Depth " + stop));
   }
 
 
@@ -856,6 +952,33 @@ depthMode.addEventListener(
   "change",
   handleDepthChange
 );
+
+
+if (customDepthInput) {
+
+  customDepthInput.addEventListener(
+    "input",
+    handleDepthChange
+  );
+
+
+  /*
+   * When the user leaves the field, show the value
+   * that will actually be used (kept inside 6-20).
+   */
+  customDepthInput.addEventListener(
+    "change",
+    () => {
+
+      customDepthInput.value =
+        String(
+          readCustomDepth()
+        );
+
+      handleDepthChange();
+    }
+  );
+}
 
 
 // ============================================================
