@@ -3,17 +3,24 @@
  * @param {string} url - The URL to fetch the data from.
  * @returns {Promise<string>} - A promise that resolves to the fetched data or error if the fetch operation fails.
  */
-let getData = async (url) => {
+async function getData(url) {
   let result = "";
+  
+  // Guard against empty or invalid URLs triggering unnecessary fetches
+  if (!url || typeof url !== "string") {
+    return "";
+  }
+
   try {
     result = await $.get(url);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching URL:", error);
   }
-  return new Promise((resolve, reject) => {
+  
+  return new Promise((resolve) => {
     resolve(result);
   });
-};
+}
 
 /**
  * Asynchronous function to check if a URL is accessible.

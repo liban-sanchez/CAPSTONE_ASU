@@ -162,3 +162,474 @@ body {
   background-color: var(--gb-primary);
   border-color: var(--gb-primary);
 }
+/* =========================
+   NEW: Hover Info Badge
+   Small "i" badge that shows its
+   description on hover, instead of
+   printing the description on screen.
+   ========================= */
+.gb-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  border-radius: 50%;
+  border: 1px solid var(--gb-border);
+  background: #f3f4f6;
+  color: var(--gb-muted);
+  font-size: 10px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  cursor: help;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.gb-info:hover {
+  background: var(--gb-soft);
+  border-color: #c7d2fe;
+  color: var(--gb-primary);
+}
+
+/* NEW: the text shown when a badge is hovered */
+.gb-tip {
+  position: fixed;
+  z-index: 2000;
+  max-width: 230px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* =========================
+   NEW: Crawl Tab Layout
+   window.html used to be a 340px
+   pop-up window. It now runs as a
+   normal browser tab, so it gets a
+   full page layout of its own.
+   ========================= */
+body.gb-worker {
+  width: auto;
+  min-height: 100vh;
+  margin: 0;
+  padding: 48px 24px 64px;
+  background: var(--gb-bg);
+}
+
+.gb-worker-shell {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.gb-worker-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.gb-worker-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.gb-worker-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gb-text);
+}
+
+.gb-worker-target {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--gb-muted);
+  word-break: break-all;
+}
+
+.gb-worker-card {
+  padding: 28px;
+}
+
+.gb-worker-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gb-worker-percent {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--gb-primary);
+}
+
+.gb-worker-label {
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.gb-worker-progress {
+  height: 14px;
+}
+
+.gb-worker-progress #progress-bar {
+  min-height: 14px;
+}
+
+.gb-worker-status {
+  margin-top: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+.gb-worker-hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--gb-muted);
+}
+
+.gb-worker-done {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--gb-border);
+}
+
+.gb-worker-done-title {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+/* Three short cards explaining the stages */
+.gb-worker-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.gb-worker-step {
+  background: var(--gb-card);
+  border: 1px solid var(--gb-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.gb-worker-step-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gb-text);
+  margin-bottom: 4px;
+}
+
+.gb-worker-step-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gb-muted);
+}
+
+@media (max-width: 560px) {
+  body.gb-worker {
+    padding: 28px 16px 48px;
+  }
+
+  .gb-worker-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   NEW: Crawl Depth Slider
+   A 0-5 slider replaces the old
+   free number box, so a very deep
+   crawl is not one keystroke away.
+   ========================= */
+.gb-depth-range {
+  margin-top: 6px;
+}
+
+.gb-depth-range::-webkit-slider-thumb {
+  background: var(--gb-primary);
+}
+
+.gb-depth-range::-webkit-slider-runnable-track {
+  background: #e5e7eb;
+  height: 5px;
+  border-radius: 999px;
+}
+
+.gb-depth-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--gb-muted);
+  padding: 0 2px;
+}
+
+.gb-depth-readout {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+/* =========================
+   NEW: High Depth Warning
+   Shown from depth 2 up, with an
+   estimate of how many pages a crawl
+   at that depth can reach.
+   ========================= */
+.gb-depth-warning,
+.gb-video-notice {
+  padding: 8px 10px;
+  border: 1px solid #f5d38a;
+  border-radius: 6px;
+  background: #fff8e6;
+  color: #7a4b00;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gb-depth-warning {
+  margin-top: 8px;
+}
+
+.gb-depth-warning strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.gb-depth-warning-note {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* NEW: number field shown when the depth slider is on "Max" */
+.gb-custom-depth {
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gb-custom-depth input {
+  width: 80px;
+}
+
+/* NEW: small recommendation under a switch */
+.gb-setting-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #7a4b00;
+}
+
+/* =========================
+   NEW: Download Dial
+   The progress ring is drawn around
+   the download button itself, so the
+   popup needs no separate progress card.
+   ========================= */
+.gb-dial {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.gb-dial-ring {
+  position: absolute;
+  inset: 0;
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.gb-dial-track {
+  fill: #ffffff;
+  stroke: var(--gb-border);
+  stroke-width: 6;
+}
+
+.gb-dial-value {
+  fill: none;
+  stroke: var(--gb-primary);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 345.6;
+  stroke-dashoffset: 345.6;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+/*
+ * The face is a filled round button sitting inside the
+ * ring, with a 6px white gap so the progress stays visible.
+ * Ring inner edge is r=52 (104px); the face is 92px.
+ */
+.gb-dial-face {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: linear-gradient(180deg, #6366f1 0%, var(--gb-primary) 100%);
+  color: #ffffff;
+  box-shadow:
+    0 4px 12px rgba(79, 70, 229, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.gb-dial-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.gb-dial-percent {
+  display: none;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gb-primary);
+}
+
+/* While a crawl runs, the face turns white and the number leads */
+.gb-dial-active:not(.gb-dial-done) .gb-dial-face {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--gb-border);
+}
+
+.gb-dial-active:not(.gb-dial-done) .gb-dial-icon {
+  display: none;
+}
+
+.gb-dial-active:not(.gb-dial-done) .gb-dial-percent {
+  display: block;
+}
+
+/* =========================
+   NEW: Download Button Look
+   The dial and the label below it
+   are one control (#submit-button).
+   The label is a filled pill and the
+   dial lifts on hover, so it reads
+   as something to click.
+   ========================= */
+#submit-button {
+  outline: none;
+  user-select: none;
+}
+
+#submit-button .gb-dial {
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+#submit-button .gb-dial-track {
+  transition: stroke 0.15s ease;
+}
+
+.gb-download-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  background: var(--gb-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.gb-download-pill-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Hover: pill darkens, dial lifts */
+#submit-button:hover .gb-download-pill {
+  background: #4338ca;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+}
+
+#submit-button:hover .gb-dial {
+  transform: translateY(-2px);
+}
+
+#submit-button:hover .gb-dial-face {
+  background: linear-gradient(180deg, var(--gb-primary) 0%, #4338ca 100%);
+  box-shadow:
+    0 6px 16px rgba(79, 70, 229, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+#submit-button:hover .gb-dial-track {
+  stroke: #c7d2fe;
+}
+
+/* Pressed */
+#submit-button:active .gb-download-pill,
+#submit-button:active .gb-dial {
+  transform: translateY(1px);
+}
+
+#submit-button:active .gb-dial-face {
+  transform: scale(0.96);
+}
+
+/* Keyboard focus */
+#submit-button:focus-visible .gb-download-pill,
+#submit-button:focus-visible .gb-dial-face {
+  outline: 3px solid #c7d2fe;
+  outline-offset: 2px;
+}
+
+/* While a crawl runs, the button steps back */
+#submit-button.gb-dial-active:not(.gb-dial-done) .gb-download-pill {
+  background: #e5e7eb;
+  color: var(--gb-muted);
+  box-shadow: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done) .gb-download-pill-icon {
+  display: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done):hover .gb-dial,
+#submit-button.gb-dial-active:not(.gb-dial-done):active .gb-dial-face {
+  transform: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done):hover .gb-dial-face {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--gb-border);
+}
+
+/* Finished runs keep the ring but calm it down */
+.gb-dial-done .gb-dial-value {
+  stroke: #16a34a;
+}
+
+.gb-dial-done .gb-dial-percent {
+  color: #16a34a;
+}

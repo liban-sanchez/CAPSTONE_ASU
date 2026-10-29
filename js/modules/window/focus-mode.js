@@ -11,6 +11,16 @@ export async function applyFocusMode(htmlData, inputUrl) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlData, "text/html");
 
+  // Strip inline event handlers (onclick, onload, etc.) to prevent CSP violations
+  const allElements = doc.querySelectorAll("*");
+  for (const el of allElements) {
+    for (const attr of el.attributes) {
+      if (attr.name.startsWith("on")) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  }
+
   doc.querySelectorAll("a[href]").forEach((anchor) => {
     try {
       let rawHref = anchor.getAttribute("href");

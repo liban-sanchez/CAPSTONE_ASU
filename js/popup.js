@@ -1,15 +1,16 @@
 /**
- * POPUP CONTROLLER
- * Main entry point for popup.html. Wires up the UI, handles user input,
- * and broadcasts the final configuration to the scraper window.
+ * POPUP CONTROLLER (Matches popup_2.html)
+ * Wires up the UI, handles user input, and broadcasts settings to the worker tab.
  */
 
 import { state } from './modules/popup/state.js';
 import { resolveSourceTab } from './modules/popup/tabs.js';
-import { getPackageConfig, DEFAULT_PACKAGE_FOLDERS } from './modules/popup/package.js';
 import { scanLinks } from './modules/popup/scanner.js';
-
-const broadcastChannel = new BroadcastChannel("scraper_data");
+import { initTooltips } from './modules/popup/tooltips.js';
+import { detectPageVideo } from './modules/popup/video.js';
+import { initDepthUI } from './modules/popup/depth.js';
+import { initProgressUI } from './modules/popup/progress.js';
+import { clearStaleDownloadFlag, startWorkerCrawl } from './modules/popup/worker.js';
 
 // ============================================================
 // DOM ELEMENTS
@@ -17,16 +18,7 @@ const broadcastChannel = new BroadcastChannel("scraper_data");
 const submitButton = document.getElementById("submit-button");
 const focusMode = document.getElementById("focus-mode-toggle");
 const restrictDomain = document.getElementById("restrict-domain-toggle");
-const depthMode = document.getElementById("choose-depth-input");
-const downloadOptionsModalElement = document.getElementById("download-options-modal");
-const startDownloadButton = document.getElementById("start-download-button");
 const downloadOptionsPage = document.getElementById("download-options-page");
-
-// Package Elements
-const packageOrganizationDefault = document.getElementById("package-organization-default");
-const packageOrganizationCustom = document.getElementById("package-organization-custom");
-const customFolderSettings = document.getElementById("custom-folder-settings");
-const resetPackageFoldersButton = document.getElementById("reset-package-folders-button");
 
 // Video Elements
 const localVideoInput = document.getElementById("local-video-input");
@@ -43,27 +35,41 @@ const clearAllLinksButton = document.getElementById("clear-all-links-button");
 const manualLinksList = document.getElementById("manual-links-list");
 
 const sourceTabReady = resolveSourceTab();
+let depthUIHandlers = null;
+let progressUIHandlers = null;
 
 // ============================================================
 // INITIALIZATION
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.sync.set({ downloadFlag: false });
-  
+  clearStaleDownloadFlag();
+  initTooltips();
+  progressUIHandlers = initProgressUI();
+  depthUIHandlers = initDepthUI(updateDepthOneUI);
+
   chrome.storage.sync.get((items) => {
     state.isFocusMode = items.isFocusMode ?? false;
-    state.isRestrictDomain = items.isRestrictDomain ?? false;
+    state.isRestrictDomain = items.isRestrictDomain ?? true; 
     if (focusMode) focusMode.checked = state.isFocusMode;
     if (restrictDomain) restrictDomain.checked = state.isRestrictDomain;
+    if (depthUIHandlers) depthUIHandlers.updateRestrictDomainHint();
   });
 
   updateDepthOneUI();
-  updatePackageOrganizationUI();
   updateLocalVideoStatus();
-  openWindow();
 
   sourceTabReady.then(() => {
-    if (state.isContextMenuLaunch) openDownloadOptions();
+    if (downloadOptionsPage) {
+      let label = state.currentPage || "Current page";
+      try {
+        const url = new URL(state.currentPage);
+        label = url.hostname + url.pathname;
+      } catch (error) {}
+      downloadOptionsPage.textContent = label;
+      downloadOptionsPage.title = state.currentPage || "";
+    }
+    
+    detectPageVideo();
   });
 });
 
@@ -75,12 +81,6 @@ function updateDepthOneUI() {
   const isDepthOne = state.maxDepthValue === 1;
   depthOneModeSection.style.display = isDepthOne ? "block" : "none";
   manualLinkControls.style.display = (isDepthOne && state.depthOneMode === "manual") ? "block" : "none";
-}
-
-function updatePackageOrganizationUI() {
-  if (!customFolderSettings) return;
-  const isCustom = Boolean(packageOrganizationCustom && packageOrganizationCustom.checked);
-  customFolderSettings.style.display = isCustom ? "block" : "none";
 }
 
 function updateLocalVideoStatus() {
@@ -156,11 +156,6 @@ function renderManualLinks() {
 // ============================================================
 // EVENT LISTENERS
 // ============================================================
-depthMode.addEventListener("change", (e) => {
-  state.maxDepthValue = Number(e.target.value || 0);
-  updateDepthOneUI();
-});
-
 focusMode.addEventListener("change", (e) => {
   state.isFocusMode = Boolean(e.target.checked);
   chrome.storage.sync.set({ isFocusMode: state.isFocusMode });
@@ -169,20 +164,11 @@ focusMode.addEventListener("change", (e) => {
 restrictDomain.addEventListener("change", (e) => {
   state.isRestrictDomain = Boolean(e.target.checked);
   chrome.storage.sync.set({ isRestrictDomain: state.isRestrictDomain });
+  if (depthUIHandlers) {
+    depthUIHandlers.updateRestrictDomainHint();
+    depthUIHandlers.updateDepthWarning();
+  }
 });
-
-if (packageOrganizationDefault) packageOrganizationDefault.addEventListener("change", updatePackageOrganizationUI);
-if (packageOrganizationCustom) packageOrganizationCustom.addEventListener("change", updatePackageOrganizationUI);
-if (resetPackageFoldersButton) {
-  resetPackageFoldersButton.addEventListener("click", () => {
-    document.getElementById("images-folder-input").value = DEFAULT_PACKAGE_FOLDERS.images;
-    document.getElementById("videos-folder-input").value = DEFAULT_PACKAGE_FOLDERS.videos;
-    document.getElementById("documents-folder-input").value = DEFAULT_PACKAGE_FOLDERS.documents;
-    document.getElementById("styles-folder-input").value = DEFAULT_PACKAGE_FOLDERS.styles;
-    document.getElementById("scripts-folder-input").value = DEFAULT_PACKAGE_FOLDERS.scripts;
-    document.getElementById("pages-folder-input").value = DEFAULT_PACKAGE_FOLDERS.pages;
-  });
-}
 
 if (depthOneAllLinks) {
   depthOneAllLinks.addEventListener("change", () => {
@@ -235,7 +221,7 @@ if (selectAllLinksButton) {
   selectAllLinksButton.addEventListener("click", () => {
     manualLinksList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       cb.checked = true;
-      state.selectedManualLinks.push(cb.dataset.linkUrl);
+      if (!state.selectedManualLinks.includes(cb.dataset.linkUrl)) state.selectedManualLinks.push(cb.dataset.linkUrl);
     });
   });
 }
@@ -248,69 +234,30 @@ if (clearAllLinksButton) {
 }
 
 // ============================================================
-// DOWNLOAD MODAL / ORCHESTRATION
+// DOWNLOAD EXECUTION
 // ============================================================
-submitButton.addEventListener("click", openDownloadOptions);
+submitButton.addEventListener("click", handleStartDownload);
 submitButton.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDownloadOptions(); }
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleStartDownload(); }
 });
 
-if (startDownloadButton) {
-  startDownloadButton.addEventListener("click", () => {
-    chrome.storage.sync.get((items) => {
-      if (!items.downloadFlag) {
-        if (state.maxDepthValue === 1 && state.depthOneMode === "manual" && state.selectedManualLinks.length === 0) {
-          if (manualLinksList) manualLinksList.innerHTML = `<div class="small text-danger">Please scan links and select at least one link.</div>`;
-          return;
-        }
-        
-        const modal = typeof bootstrap !== "undefined" ? bootstrap.Modal.getOrCreateInstance(downloadOptionsModalElement) : null;
-        if (modal) modal.hide();
-        if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Foreground Crawl Running...";
-        
-        const packageConfig = getPackageConfig();
-        broadcastChannel.postMessage([
-          state.currentPage, state.isFocusMode, state.isRestrictDomain, state.maxDepthValue,
-          state.sourceTabId, state.depthOneMode, state.selectedManualLinks, state.selectedLocalVideos, packageConfig
-        ]);
-      } else {
-        const modal = typeof bootstrap !== "undefined" ? bootstrap.Modal.getOrCreateInstance(downloadOptionsModalElement) : null;
-        if (modal) modal.hide();
-        new bootstrap.Toast($("#toast")).show();
-      }
-    });
-  });
-}
-
-async function openDownloadOptions() {
-  await sourceTabReady;
+function handleStartDownload() {
   chrome.storage.sync.get((items) => {
-    if (items.downloadFlag) {
-      new bootstrap.Toast($("#toast")).show();
-      return;
-    }
-    
-    if (downloadOptionsPage) {
-      try {
-        const url = new URL(state.currentPage);
-        downloadOptionsPage.textContent = url.hostname + url.pathname;
-      } catch (error) {
-        downloadOptionsPage.textContent = state.currentPage || "Current page";
+    if (!items.downloadFlag) {
+      if (state.maxDepthValue === 1 && state.depthOneMode === "manual" && state.selectedManualLinks.length === 0) {
+        const advancedCollapse = document.getElementById("advanced-options");
+        if (advancedCollapse && typeof bootstrap !== "undefined") {
+          bootstrap.Collapse.getOrCreateInstance(advancedCollapse).show();
+        }
+        if (manualLinksList) manualLinksList.innerHTML = `<div class="small text-danger">Please scan links and select at least one link.</div>`;
+        return;
       }
-      downloadOptionsPage.title = state.currentPage || "";
+      
+      if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Foreground Crawl Running...";
+      startWorkerCrawl(progressUIHandlers.updatePopupStatus);
+    } else {
+      const toastEl = document.getElementById("toast");
+      if (toastEl && typeof bootstrap !== "undefined") new bootstrap.Toast(toastEl).show();
     }
-    
-    updateDepthOneUI();
-    updatePackageOrganizationUI();
-    const modal = typeof bootstrap !== "undefined" ? bootstrap.Modal.getOrCreateInstance(downloadOptionsModalElement) : null;
-    if (modal) modal.show();
   });
-}
-
-function openWindow() {
-  let params = `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=340,height=350,left=100,top=100,dependent=yes`;
-  let popupWindow = window.open("../html/window.html", "scraper_window", params);
-  if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === "undefined") {
-    alert("Please allow pop-ups for this website in order to download it.");
-  }
 }

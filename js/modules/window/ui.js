@@ -8,6 +8,7 @@
  * - fixed window size
  */
 
+const progressChannel = new BroadcastChannel("scraper_progress");
 
 export const feedbackFormSection =
   document.getElementById("feedback-form-section");
@@ -136,6 +137,9 @@ export function updateProgress(currentCount, totalCount) {
   );
 
   const percentage = Math.ceil(fraction * 100);
+
+  progressChannel.postMessage({ percentage });
+
   const progressPercentage = `${percentage}%`;
 
   if (currentProgress) {
@@ -224,6 +228,8 @@ export function updateProgress(currentCount, totalCount) {
 // ============================================================
 
 export function updateStatus(message) {
+
+  progressChannel.postMessage({ message });
 
   if (statusMessage) {
     statusMessage.innerText = message;

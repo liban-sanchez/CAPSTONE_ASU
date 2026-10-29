@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -42,34 +41,12 @@
       >
         <div class="text-center mb-3">
 
-          <div
-            class="d-flex justify-content-center align-items-center mb-2"
-          >
-            <img
-              src="../images/grey-box-play.png"
-              alt="Grey-Box Logo"
-              style="
-                width: 42px;
-                height: 42px;
-                object-fit: contain;
-              "
-            />
-          </div>
-
           <h4
             class="mb-1 fw-bold text-dark"
           >
-            Project Scraper Alpha
+            Project Scraper
+
           </h4>
-
-          <div
-            class="small text-muted"
-          >
-            Save websites for offline browsing
-          </div>
-
-        </div>
-
 
         <!-- ================================================= -->
         <!-- MAIN ACTION -->
@@ -84,49 +61,536 @@
             style="cursor: pointer;"
             role="button"
             tabindex="0"
-            aria-haspopup="dialog"
-            aria-controls="download-options-modal"
           >
-            <div
-              class="
-                mx-auto
-                d-flex
-                align-items-center
-                justify-content-center
-                rounded-circle
-                shadow-sm
-                border
-              "
-              style="
-                width: 120px;
-                height: 120px;
-                background: #ffffff;
-              "
-            >
-              <img
-                src="../images/grey-box-play.png"
-                alt="Start Download"
-                style="
-                  width: 54px;
-                  height: 54px;
-                  object-fit: contain;
-                "
-              />
+            <div class="gb-dial mx-auto">
+
+              <!-- Progress ring drawn around the button -->
+              <svg
+                class="gb-dial-ring"
+                viewBox="0 0 120 120"
+                aria-hidden="true"
+              >
+                <circle
+                  class="gb-dial-track"
+                  cx="60"
+                  cy="60"
+                  r="55"
+                />
+
+                <circle
+                  id="progress-ring"
+                  class="gb-dial-value"
+                  cx="60"
+                  cy="60"
+                  r="55"
+                />
+              </svg>
+
+              <div class="gb-dial-face">
+                <!--
+                  The circle is the button face: filled, with a white
+                  download arrow. Inline SVG so it shows offline.
+                -->
+                <svg
+                  class="gb-dial-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 4v11M7 10.5l5 5 5-5M5 20h14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+
+                <div
+                  id="current-progress"
+                  class="gb-dial-percent"
+                ></div>
+              </div>
             </div>
 
+            <!--
+              Styled as a real button so the control reads as clickable.
+              popup.js rewrites only the inner #button-title text, so the
+              arrow icon stays. The icon is inline SVG, not the CDN icon
+              font, so it still shows offline.
+            -->
             <div
-              id="button-title"
-              class="mt-3 fw-semibold text-dark"
+              class="gb-download-pill mt-3"
             >
-              Download This Page
+              <svg
+                class="gb-download-pill-icon"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path
+                  d="M8 1.5v8.8M4.5 6.8 8 10.3l3.5-3.5M2.5 13.5h11"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+
+              <span
+                id="button-title"
+              >Download This Page</span>
             </div>
 
             <div
               class="small text-muted mt-2 px-2"
             >
-              Choose your download options, then the active browser tab will
-              move page-to-page while your offline copy is prepared.
+              Saves this page for offline browsing
+              <span
+                class="gb-info"
+                tabindex="0"
+                title="The active browser tab moves page-to-page while your offline copy is prepared."
+              >i</span>
             </div>
+
+            <div
+              id="download-options-page"
+              class="small text-muted mt-1 text-truncate px-2"
+            ></div>
+
+            <div
+              id="progress-section"
+              class="small fw-semibold text-dark mt-2 px-2"
+              style="display: none;"
+            >
+              <span id="popup-status">Waiting to start</span>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- ADVANCED OPTIONS -->
+        <!-- ================================================= -->
+
+        <section>
+          <button
+            class="btn btn-sm btn-outline-secondary w-100"
+            type="button"
+            id="advanced-options-toggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#advanced-options"
+            aria-expanded="false"
+            aria-controls="advanced-options"
+          >
+            Advanced options
+          </button>
+
+          <div
+            class="collapse mt-3"
+            id="advanced-options"
+          >
+
+              <!-- ================================================= -->
+              <!-- DEPTH SELECTOR -->
+              <!-- ================================================= -->
+
+              <div
+                class="mb-3"
+              >
+                <label
+                  class="form-label fw-semibold text-dark"
+                  for="choose-depth-input"
+                >
+                  Crawl Depth
+                  <span
+                    class="gb-info"
+                    tabindex="0"
+                    title="Depth 0 saves only the current page. Depth 1 also saves the pages it links to, and can take up to 10 minutes. Each extra level multiplies the number of pages. Max lets you type a larger number."
+                  >i</span>
+                </label>
+
+                <input
+                  type="range"
+                  id="choose-depth-input"
+                  name="choose-depth"
+                  min="0"
+                  max="6"
+                  step="1"
+                  value="0"
+                  class="form-range gb-depth-range"
+                />
+
+                <div
+                  class="gb-depth-scale"
+                >
+                  <span>0</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>Max</span>
+                </div>
+
+
+                <!--
+                  "Max" (Oct 1 review) asks for a number inline rather
+                  than with a blocking prompt, so a crawl never waits on
+                  input. It starts at 10 and accepts 6-20.
+                -->
+                <div
+                  id="custom-depth-row"
+                  class="gb-custom-depth"
+                  style="display: none;"
+                >
+                  <label
+                    for="custom-depth-input"
+                    class="small fw-semibold text-dark mb-0"
+                  >
+                    Levels deep
+                  </label>
+
+                  <input
+                    type="number"
+                    id="custom-depth-input"
+                    class="form-control form-control-sm"
+                    min="6"
+                    max="20"
+                    step="1"
+                    value="10"
+                  />
+                </div>
+
+                <div
+                  id="depth-readout"
+                  class="gb-depth-readout"
+                >
+                  Depth 0 — just this page
+                </div>
+
+
+                <!--
+                  Shown from depth 2 up, including Max;
+                  see updateDepthWarning() in popup.js.
+                -->
+                <div
+                  id="depth-warning"
+                  class="gb-depth-warning"
+                  role="status"
+                  style="display: none;"
+                ></div>
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- DEPTH 1 MODE -->
+              <!-- ================================================= -->
+
+              <div
+                id="depth-one-mode-section"
+                class="mt-3"
+              >
+                <div
+                  class="fw-semibold text-dark mb-2"
+                >
+                  Depth 1 Mode
+                </div>
+
+
+                <!-- Download All Links -->
+
+                <div
+                  class="form-check mb-2"
+                >
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="depth-one-mode"
+                    id="depth-one-all-links"
+                    value="all"
+                    checked
+                  />
+
+                  <label
+                    class="form-check-label text-dark"
+                    for="depth-one-all-links"
+                  >
+                    Download all first-level links
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Downloads the current page and every valid page it links to."
+                    >i</span>
+                  </label>
+                </div>
+
+
+                <!-- Manual Link Selection -->
+
+                <div
+                  class="form-check mb-3"
+                >
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="depth-one-mode"
+                    id="depth-one-manual-links"
+                    value="manual"
+                  />
+
+                  <label
+                    class="form-check-label text-dark"
+                    for="depth-one-manual-links"
+                  >
+                    Choose links manually
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Scans the page and lets you pick the exact links to download."
+                    >i</span>
+                  </label>
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- MANUAL LINK CONTROLS -->
+                <!-- ================================================= -->
+
+                <div
+                  id="manual-link-controls"
+                  class="border rounded p-2 bg-light"
+                  style="display: none;"
+                >
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <div
+                      class="fw-semibold text-dark small"
+                    >
+                      Select links to download
+                      <span
+                        class="gb-info"
+                        tabindex="0"
+                        title="Scan the current page, then choose which first-level links to include."
+                      >i</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="scan-links-button"
+                    >
+                      Scan Links
+                    </button>
+                  </div>
+
+
+
+                  <div
+                    class="d-flex gap-2 mb-2"
+                  >
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      id="select-all-links-button"
+                    >
+                      Select All
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      id="clear-all-links-button"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+
+
+                  <div
+                    id="manual-links-list"
+                    class="border rounded bg-white p-2"
+                    style="
+                      max-height: 180px;
+                      overflow-y: auto;
+                    "
+                  >
+                    <div
+                      class="small text-muted"
+                    >
+                      No links scanned yet.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              <!-- ================================================= -->
+              <!-- OTHER OPTIONS -->
+              <!-- ================================================= -->
+
+              <div
+                class="border-top pt-3 mt-3"
+              >
+
+                <!-- ================================================= -->
+                <!-- RESTRICT DOMAIN -->
+                <!-- First switch: recommended for any crawl past depth 0 -->
+                <!-- ================================================= -->
+
+                <div
+                  class="mb-3"
+                >
+                  <div
+                    class="d-flex align-items-center justify-content-between"
+                  >
+                    <div>
+                      <label
+                        class="form-check-label fw-semibold text-dark"
+                        for="restrict-domain-toggle"
+                      >
+                        Restrict Domain
+                      </label>
+                    </div>
+
+
+                    <div
+                      class="d-flex align-items-center gap-2"
+                    >
+                      <span
+                        class="gb-info"
+                        tabindex="0"
+                        title="Only saves pages from this website. Keep it on for depth 1 and higher, or links to other websites get saved too."
+                      >i</span>
+
+
+                      <div
+                        class="form-check form-switch m-0"
+                      >
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="restrict-domain-toggle"
+                          name="restrict-domain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div
+                    id="restrict-domain-hint"
+                    class="gb-setting-hint"
+                    style="display: none;"
+                  >
+                    Recommended for depth 1 and up. Without it, pages from
+                    other websites are saved too.
+                  </div>
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- FOCUS MODE -->
+                <!-- ================================================= -->
+
+                <div
+                  class="d-flex align-items-center justify-content-between mb-3"
+                >
+                  <div>
+                    <label
+                      class="form-check-label fw-semibold text-dark"
+                      for="focus-mode-toggle"
+                    >
+                      Focus Mode
+                    </label>
+                  </div>
+
+
+                  <div
+                    class="d-flex align-items-center gap-2"
+                  >
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Simplifies the downloaded content. Not fully implemented yet."
+                    >i</span>
+
+
+                    <div
+                      class="form-check form-switch m-0"
+                    >
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="focus-mode-toggle"
+                        name="focus-mode"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- DOWNLOAD MULTIPLE URLS -->
+                <!-- ================================================= -->
+
+                <div
+                  class="d-flex align-items-center justify-content-between mb-2"
+                >
+                  <div>
+                    <label
+                      class="form-check-label fw-semibold text-dark"
+                      for="download-multiple-urls-toggle"
+                    >
+                      Download Multiple URLs
+                    </label>
+                  </div>
+
+
+                  <div
+                    class="d-flex align-items-center gap-2"
+                  >
+                    <span
+                      class="gb-info"
+                      tabindex="0"
+                      title="Queues several websites at once. Not fully implemented yet."
+                    >i</span>
+
+
+                    <div
+                      class="form-check form-switch m-0"
+                    >
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="download-multiple-urls-toggle"
+                        name="download-multiple-urls"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseWidthMultipleURLs"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+
+                <div
+                  class="collapse"
+                  id="collapseWidthMultipleURLs"
+                >
+                  <div
+                    class="mt-2"
+                  >
+                    <textarea
+                      id="multiple-urls"
+                      name="multiple-urls"
+                      class="form-control"
+                      placeholder="Enter one URL per line..."
+                      rows="6"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
           </div>
         </section>
 
@@ -167,16 +631,19 @@
             Please wait until it finishes.
           </div>
         </section>
-
       </section>
 
-
       <!-- ================================================= -->
-      <!-- PROGRESS CARD -->
+      <!-- VIDEO -->
+      <!-- Embedded video notice and local video import in -->
+      <!-- one block, under Download. Hidden unless the page -->
+      <!-- has video; see detectPageVideo() in popup.js. -->
       <!-- ================================================= -->
 
       <section
+        id="video-section"
         class="bg-white rounded shadow-sm border p-3 mb-3"
+        style="display: none;"
       >
         <div
           class="d-flex align-items-center justify-content-between mb-2"
@@ -184,143 +651,47 @@
           <div
             class="fw-semibold text-dark"
           >
-            Download Progress
+            Video on this page
           </div>
 
-          <div
-            class="small text-muted"
-          >
-            Live status
-          </div>
+          <span
+            class="gb-info"
+            tabindex="0"
+            title="Videos you add go into the video/ folder of the ZIP. MP4, WebM, MOV, M4V, AVI and MKV."
+          >i</span>
         </div>
+
 
         <div
-          class="progress-bar-wrapper"
-        >
-          <div
-            id="progress-bar"
-            class="
-              progress-bar
-              progress-bar-striped
-              progress-bar-animated
-            "
-            role="progressbar"
-            aria-valuenow="0"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            style="
-              width: 0%;
-              min-height: 24px;
-            "
-          >
-            <span
-              id="current-progress"
-            ></span>
-          </div>
-        </div>
+          id="video-detect-summary"
+          class="small text-muted mb-2"
+        ></div>
+
 
         <div
-          class="small text-muted mt-2"
-        >
-          The final ZIP file will download after crawling and packaging are
-          complete.
-        </div>
-      </section>
+          id="video-embedded-notice"
+          class="gb-video-notice mb-2"
+          style="display: none;"
+        ></div>
 
-
-      <!-- ================================================= -->
-      <!-- EMBEDDED VIDEO NOTICE -->
-      <!-- ================================================= -->
-
-      <section
-        class="bg-white rounded shadow-sm border p-3 mb-3"
-      >
-        <div
-          class="d-flex align-items-center justify-content-between mb-2"
-        >
-          <div
-            class="fw-semibold text-dark"
-          >
-            Embedded Video Support
-          </div>
-
-          <i
-            class="bi bi-exclamation-triangle text-warning"
-            aria-hidden="true"
-          ></i>
-        </div>
-
-        <div
-          class="small text-muted"
-        >
-          Embedded videos may not download correctly at this time.
-          The rest of the webpage can still be saved normally.
-        </div>
-
-        <div
-          class="small text-muted mt-2"
-        >
-          If you need the video included in your offline package,
-          use <strong>Add Local Video</strong> below to select a copy
-          from your computer.
-        </div>
-      </section>
-
-
-      <!-- ================================================= -->
-      <!-- LOCAL VIDEO IMPORT -->
-      <!-- ================================================= -->
-
-      <section
-        class="bg-white rounded shadow-sm border p-3 mb-3"
-      >
-        <div
-          class="d-flex align-items-center justify-content-between mb-2"
-        >
-          <div
-            class="fw-semibold text-dark"
-          >
-            Add Local Video
-          </div>
-
-          <i
-            class="bi bi-camera-video text-muted"
-          ></i>
-        </div>
-
-        <div
-          class="small text-muted mb-3"
-        >
-          Select video files already saved on your computer and include them in
-          the final offline ZIP package.
-        </div>
 
         <!-- Video File Picker -->
 
-        <div
-          class="mb-2"
+        <label
+          for="local-video-input"
+          class="form-label fw-semibold text-dark small mb-1"
         >
-          <label
-            for="local-video-input"
-            class="form-label fw-semibold text-dark"
-          >
-            Select Video File
-          </label>
+          Add a video from your computer
+        </label>
 
-          <input
-            type="file"
-            id="local-video-input"
-            class="form-control"
-            accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
-            multiple
-          />
-        </div>
+        <input
+          type="file"
+          id="local-video-input"
+          class="form-control form-control-sm"
+          accept="video/*,.mp4,.webm,.mov,.m4v,.avi,.mkv"
+          multiple
+        />
 
-        <div
-          class="small text-muted mb-2"
-        >
-          Supported examples include MP4, WebM, MOV, M4V, AVI, and MKV.
-        </div>
 
         <!-- Selected Video Status -->
 
@@ -333,14 +704,6 @@
           >
             No local videos selected.
           </div>
-        </div>
-
-        <div
-          class="small text-muted mt-2"
-        >
-          Selected videos will be placed inside the
-          <strong>video/</strong>
-          folder in the downloaded ZIP.
         </div>
       </section>
 
@@ -376,819 +739,6 @@
 
     </main>
 
-
-    <!-- ================================================= -->
-    <!-- DOWNLOAD OPTIONS MODAL -->
-    <!-- ================================================= -->
-
-    <div
-      class="modal fade"
-      id="download-options-modal"
-      tabindex="-1"
-      aria-labelledby="download-options-title"
-      aria-hidden="true"
-    >
-      <div
-        class="modal-dialog modal-fullscreen modal-dialog-scrollable"
-      >
-        <div
-          class="modal-content"
-          style="background-color: #f7f8fa;"
-        >
-
-          <!-- ================================================= -->
-          <!-- MODAL HEADER -->
-          <!-- ================================================= -->
-
-          <div
-            class="modal-header bg-white"
-          >
-            <div
-              class="d-flex align-items-center gap-2"
-              style="min-width: 0;"
-            >
-              <img
-                src="../images/grey-box-play.png"
-                alt=""
-                style="
-                  width: 28px;
-                  height: 28px;
-                  object-fit: contain;
-                "
-              />
-
-              <div
-                style="min-width: 0;"
-              >
-                <h5
-                  class="modal-title fw-bold text-dark mb-0"
-                  id="download-options-title"
-                >
-                  Download Options
-                </h5>
-
-                <div
-                  id="download-options-page"
-                  class="small text-muted text-truncate"
-                >
-                  Current page
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-
-
-          <!-- ================================================= -->
-          <!-- MODAL BODY -->
-          <!-- ================================================= -->
-
-          <div
-            class="modal-body"
-          >
-            <div
-              class="small text-muted mb-3"
-            >
-              Set up how this page should be saved, then start the download.
-            </div>
-
-
-            <!-- ================================================= -->
-            <!-- PACKAGE ORGANIZATION -->
-            <!-- ================================================= -->
-
-            <section
-              class="bg-white rounded shadow-sm border p-3 mb-3"
-            >
-              <div
-                class="d-flex align-items-center justify-content-between mb-3"
-              >
-                <div>
-                  <div class="fw-semibold text-dark">
-                    Package Organization
-                  </div>
-
-                  <div class="small text-muted mt-1">
-                    Customize how your offline website package is organized.
-                  </div>
-                </div>
-
-                <i
-                  class="bi bi-folder text-muted"
-                  aria-hidden="true"
-                ></i>
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- PACKAGE NAME -->
-              <!-- ================================================= -->
-
-              <div class="mb-3">
-
-                <label
-                  for="package-name-input"
-                  class="form-label fw-semibold text-dark"
-                >
-                  Package Name
-                </label>
-
-                <input
-                  type="text"
-                  id="package-name-input"
-                  class="form-control"
-                  value="offline-website"
-                  placeholder="Enter package name"
-                  maxlength="100"
-                />
-
-                <div class="small text-muted mt-1">
-                  This name will be used for the downloaded offline package.
-                </div>
-
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- ORGANIZATION MODE -->
-              <!-- ================================================= -->
-
-              <div class="mb-3">
-
-                <div class="fw-semibold text-dark mb-2">
-                  Folder Organization
-                </div>
-
-                <div class="form-check mb-2">
-
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="package-organization-mode"
-                    id="package-organization-default"
-                    value="default"
-                    checked
-                  />
-
-                  <label
-                    class="form-check-label"
-                    for="package-organization-default"
-                  >
-                    Default
-                  </label>
-
-                  <div class="small text-muted ms-4">
-                    Use Project Scraper's recommended folder structure.
-                  </div>
-
-                </div>
-
-
-                <div class="form-check">
-
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="package-organization-mode"
-                    id="package-organization-custom"
-                    value="custom"
-                  />
-
-                  <label
-                    class="form-check-label"
-                    for="package-organization-custom"
-                  >
-                    Custom
-                  </label>
-
-                  <div class="small text-muted ms-4">
-                    Choose your own names for content folders.
-                  </div>
-
-                </div>
-
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- CUSTOM FOLDER SETTINGS -->
-              <!-- ================================================= -->
-
-              <div
-                id="custom-folder-settings"
-                class="border rounded bg-light p-3 mb-3"
-                style="display: none;"
-              >
-
-                <div class="fw-semibold text-dark mb-1">
-                  Custom Folder Names
-                </div>
-
-                <div class="small text-muted mb-3">
-                  Choose how resources will be named inside the offline package.
-                </div>
-
-
-                <!-- Images -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="images-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Images
-                  </label>
-
-                  <input
-                    type="text"
-                    id="images-folder-input"
-                    class="form-control form-control-sm"
-                    value="images"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- Videos -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="videos-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Videos
-                  </label>
-
-                  <input
-                    type="text"
-                    id="videos-folder-input"
-                    class="form-control form-control-sm"
-                    value="videos"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- Documents -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="documents-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Documents
-                  </label>
-
-                  <input
-                    type="text"
-                    id="documents-folder-input"
-                    class="form-control form-control-sm"
-                    value="documents"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- Styles -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="styles-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Styles
-                  </label>
-
-                  <input
-                    type="text"
-                    id="styles-folder-input"
-                    class="form-control form-control-sm"
-                    value="styles"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- Scripts -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="scripts-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Scripts
-                  </label>
-
-                  <input
-                    type="text"
-                    id="scripts-folder-input"
-                    class="form-control form-control-sm"
-                    value="scripts"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- Pages -->
-
-                <div class="mb-3">
-
-                  <label
-                    for="pages-folder-input"
-                    class="form-label small fw-semibold"
-                  >
-                    Pages
-                  </label>
-
-                  <input
-                    type="text"
-                    id="pages-folder-input"
-                    class="form-control form-control-sm"
-                    value="pages"
-                    maxlength="50"
-                  />
-
-                </div>
-
-
-                <!-- RESET BUTTON -->
-
-                <button
-                  type="button"
-                  id="reset-package-folders-button"
-                  class="btn btn-outline-secondary btn-sm"
-                >
-                  <i class="bi bi-arrow-counterclockwise me-1"></i>
-                  Reset Folder Names
-                </button>
-
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- README OPTION -->
-              <!-- ================================================= -->
-
-              <div
-                class="d-flex align-items-center justify-content-between"
-              >
-
-                <div>
-
-                  <label
-                    class="form-check-label fw-semibold text-dark"
-                    for="include-readme-toggle"
-                  >
-                    Include README
-                  </label>
-
-                  <div class="small text-muted">
-                    Add instructions and package information to the download.
-                  </div>
-
-                </div>
-
-                <div class="form-check form-switch m-0">
-
-                  <input
-                    class="form-check-input"
-                    type="checkbox"
-                    id="include-readme-toggle"
-                    checked
-                  />
-
-                </div>
-
-              </div>
-
-            </section>
-
-
-            <!-- ================================================= -->
-            <!-- ADVANCED OPTIONS -->
-            <!-- ================================================= -->
-
-            <section
-              class="bg-white rounded shadow-sm border p-3"
-            >
-              <div
-                class="fw-semibold text-dark mb-3"
-              >
-                Advanced Options
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- DEPTH SELECTOR -->
-              <!-- ================================================= -->
-
-              <div
-                class="mb-3"
-              >
-                <label
-                  class="form-label fw-semibold text-dark"
-                  for="choose-depth-input"
-                >
-                  Crawl Depth
-                </label>
-
-                <input
-                  type="number"
-                  id="choose-depth-input"
-                  name="choose-depth"
-                  min="0"
-                  max="10"
-                  class="form-control"
-                  placeholder="Enter a depth from 0 to 10"
-                />
-
-                <div
-                  class="small text-muted mt-2"
-                >
-                  <strong>Depth 0:</strong>
-                  Saves only the current page.
-                </div>
-
-                <div
-                  class="small text-muted mt-1"
-                >
-                  <strong>Depth 1:</strong>
-                  Saves the current page and first-level linked pages. You can
-                  either download all valid links or choose the exact links
-                  manually.
-                </div>
-
-                <div
-                  class="small text-warning mt-2"
-                >
-                  This process may take up to 10 minutes depending on the website.
-                </div>
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- DEPTH 1 MODE -->
-              <!-- ================================================= -->
-
-              <div
-                id="depth-one-mode-section"
-                class="mt-3"
-              >
-                <div
-                  class="fw-semibold text-dark mb-2"
-                >
-                  Depth 1 Mode
-                </div>
-
-
-                <!-- Download All Links -->
-
-                <div
-                  class="form-check mb-2"
-                >
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="depth-one-mode"
-                    id="depth-one-all-links"
-                    value="all"
-                    checked
-                  />
-
-                  <label
-                    class="form-check-label text-dark"
-                    for="depth-one-all-links"
-                  >
-                    Download all first-level links
-                  </label>
-
-                  <div
-                    class="small text-muted ms-4"
-                  >
-                    Downloads the current page and every valid page it links to.
-                  </div>
-                </div>
-
-
-                <!-- Manual Link Selection -->
-
-                <div
-                  class="form-check mb-3"
-                >
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="depth-one-mode"
-                    id="depth-one-manual-links"
-                    value="manual"
-                  />
-
-                  <label
-                    class="form-check-label text-dark"
-                    for="depth-one-manual-links"
-                  >
-                    Choose links manually
-                  </label>
-
-                  <div
-                    class="small text-muted ms-4"
-                  >
-                    Scans the page and lets you choose the exact links to download.
-                  </div>
-                </div>
-
-
-                <!-- ================================================= -->
-                <!-- MANUAL LINK CONTROLS -->
-                <!-- ================================================= -->
-
-                <div
-                  id="manual-link-controls"
-                  class="border rounded p-2 bg-light"
-                  style="display: none;"
-                >
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-2"
-                  >
-                    <div
-                      class="fw-semibold text-dark small"
-                    >
-                      Select links to download
-                    </div>
-
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-secondary"
-                      id="scan-links-button"
-                    >
-                      Scan Links
-                    </button>
-                  </div>
-
-                  <div
-                    class="small text-muted mb-2"
-                  >
-                    Scan the current page and choose which first-level links should
-                    be included in the download.
-                  </div>
-
-                  <div
-                    class="d-flex gap-2 mb-2"
-                  >
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-primary"
-                      id="select-all-links-button"
-                    >
-                      Select All
-                    </button>
-
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-secondary"
-                      id="clear-all-links-button"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-
-                  <div
-                    id="manual-links-list"
-                    class="border rounded bg-white p-2"
-                    style="
-                      max-height: 180px;
-                      overflow-y: auto;
-                    "
-                  >
-                    <div
-                      class="small text-muted"
-                    >
-                      No links scanned yet.
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-
-              <!-- ================================================= -->
-              <!-- OTHER OPTIONS -->
-              <!-- ================================================= -->
-
-              <div
-                class="border-top pt-3 mt-3"
-              >
-
-
-                <!-- ================================================= -->
-                <!-- FOCUS MODE -->
-                <!-- ================================================= -->
-
-                <div
-                  class="d-flex align-items-center justify-content-between mb-3"
-                >
-                  <div>
-                    <label
-                      class="form-check-label fw-semibold text-dark"
-                      for="focus-mode-toggle"
-                    >
-                      Focus Mode
-                    </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Intended to simplify downloaded content.
-                    </div>
-                  </div>
-
-                  <div
-                    class="d-flex align-items-center gap-2"
-                  >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="This feature has not been fully implemented yet."
-                    ></i>
-
-                    <div
-                      class="form-check form-switch m-0"
-                    >
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="focus-mode-toggle"
-                        name="focus-mode"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-
-                <!-- ================================================= -->
-                <!-- RESTRICT DOMAIN -->
-                <!-- ================================================= -->
-
-                <div
-                  class="d-flex align-items-center justify-content-between mb-3"
-                >
-                  <div>
-                    <label
-                      class="form-check-label fw-semibold text-dark"
-                      for="restrict-domain-toggle"
-                    >
-                      Restrict Domain
-                    </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Only save pages from the same website domain.
-                    </div>
-                  </div>
-
-                  <div
-                    class="d-flex align-items-center gap-2"
-                  >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="Recommended when using depth 1."
-                    ></i>
-
-                    <div
-                      class="form-check form-switch m-0"
-                    >
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="restrict-domain-toggle"
-                        name="restrict-domain"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-
-                <!-- ================================================= -->
-                <!-- DOWNLOAD MULTIPLE URLS -->
-                <!-- ================================================= -->
-
-                <div
-                  class="d-flex align-items-center justify-content-between mb-2"
-                >
-                  <div>
-                    <label
-                      class="form-check-label fw-semibold text-dark"
-                      for="download-multiple-urls-toggle"
-                    >
-                      Download Multiple URLs
-                    </label>
-
-                    <div
-                      class="small text-muted"
-                    >
-                      Queue several websites at once.
-                    </div>
-                  </div>
-
-                  <div
-                    class="d-flex align-items-center gap-2"
-                  >
-                    <i
-                      class="bi bi-info-circle text-muted"
-                      data-bs-placement="top"
-                      title="This feature has not been fully implemented yet."
-                    ></i>
-
-                    <div
-                      class="form-check form-switch m-0"
-                    >
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="download-multiple-urls-toggle"
-                        name="download-multiple-urls"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#collapseWidthMultipleURLs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-
-                <div
-                  class="collapse"
-                  id="collapseWidthMultipleURLs"
-                >
-                  <div
-                    class="mt-2"
-                  >
-                    <textarea
-                      id="multiple-urls"
-                      name="multiple-urls"
-                      class="form-control"
-                      placeholder="Enter one URL per line..."
-                      rows="6"
-                    ></textarea>
-                  </div>
-                </div>
-
-              </div>
-
-            </section>
-
-          </div>
-
-
-          <!-- ================================================= -->
-          <!-- MODAL FOOTER -->
-          <!-- ================================================= -->
-
-          <div
-            class="modal-footer bg-white"
-          >
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              class="btn btn-primary"
-              id="start-download-button"
-            >
-              <i
-                class="bi bi-download me-1"
-              ></i>
-              Start Download
-            </button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-
     <!-- ================================================= -->
     <!-- JAVASCRIPT -->
     <!-- ================================================= -->
@@ -1204,6 +754,7 @@
     <script
       src="../js/jszip/jszip-utils.js"
     ></script>
+
 
     <!-- Order is important -->
 
