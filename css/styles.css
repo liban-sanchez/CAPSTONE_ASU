@@ -472,33 +472,157 @@ body.gb-worker {
   transition: stroke-dashoffset 0.3s ease;
 }
 
+/*
+ * The face is a filled round button sitting inside the
+ * ring, with a 6px white gap so the progress stays visible.
+ * Ring inner edge is r=52 (104px); the face is 92px.
+ */
 .gb-dial-face {
   position: absolute;
-  inset: 0;
+  top: 14px;
+  left: 14px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
+  background: linear-gradient(180deg, #6366f1 0%, var(--gb-primary) 100%);
+  color: #ffffff;
+  box-shadow:
+    0 4px 12px rgba(79, 70, 229, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .gb-dial-icon {
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
-  transition: width 0.2s ease, height 0.2s ease;
+  width: 40px;
+  height: 40px;
 }
 
 .gb-dial-percent {
-  font-size: 20px;
+  display: none;
+  font-size: 22px;
   font-weight: 700;
   color: var(--gb-primary);
 }
 
-/* While a crawl runs the number leads */
-.gb-dial-active .gb-dial-icon {
-  width: 28px;
-  height: 28px;
+/* While a crawl runs, the face turns white and the number leads */
+.gb-dial-active:not(.gb-dial-done) .gb-dial-face {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--gb-border);
+}
+
+.gb-dial-active:not(.gb-dial-done) .gb-dial-icon {
+  display: none;
+}
+
+.gb-dial-active:not(.gb-dial-done) .gb-dial-percent {
+  display: block;
+}
+
+/* =========================
+   NEW: Download Button Look
+   The dial and the label below it
+   are one control (#submit-button).
+   The label is a filled pill and the
+   dial lifts on hover, so it reads
+   as something to click.
+   ========================= */
+#submit-button {
+  outline: none;
+  user-select: none;
+}
+
+#submit-button .gb-dial {
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+#submit-button .gb-dial-track {
+  transition: stroke 0.15s ease;
+}
+
+.gb-download-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  background: var(--gb-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.gb-download-pill-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Hover: pill darkens, dial lifts */
+#submit-button:hover .gb-download-pill {
+  background: #4338ca;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+}
+
+#submit-button:hover .gb-dial {
+  transform: translateY(-2px);
+}
+
+#submit-button:hover .gb-dial-face {
+  background: linear-gradient(180deg, var(--gb-primary) 0%, #4338ca 100%);
+  box-shadow:
+    0 6px 16px rgba(79, 70, 229, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+#submit-button:hover .gb-dial-track {
+  stroke: #c7d2fe;
+}
+
+/* Pressed */
+#submit-button:active .gb-download-pill,
+#submit-button:active .gb-dial {
+  transform: translateY(1px);
+}
+
+#submit-button:active .gb-dial-face {
+  transform: scale(0.96);
+}
+
+/* Keyboard focus */
+#submit-button:focus-visible .gb-download-pill,
+#submit-button:focus-visible .gb-dial-face {
+  outline: 3px solid #c7d2fe;
+  outline-offset: 2px;
+}
+
+/* While a crawl runs, the button steps back */
+#submit-button.gb-dial-active:not(.gb-dial-done) .gb-download-pill {
+  background: #e5e7eb;
+  color: var(--gb-muted);
+  box-shadow: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done) .gb-download-pill-icon {
+  display: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done):hover .gb-dial,
+#submit-button.gb-dial-active:not(.gb-dial-done):active .gb-dial-face {
+  transform: none;
+}
+
+#submit-button.gb-dial-active:not(.gb-dial-done):hover .gb-dial-face {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px var(--gb-border);
 }
 
 /* Finished runs keep the ring but calm it down */

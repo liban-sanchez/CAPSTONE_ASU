@@ -94,11 +94,24 @@
               </svg>
 
               <div class="gb-dial-face">
-                <img
-                  src="../images/grey-box-play.png"
-                  alt="Start Download"
+                <!--
+                  The circle is the button face: filled, with a white
+                  download arrow. Inline SVG so it shows offline.
+                -->
+                <svg
                   class="gb-dial-icon"
-                />
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 4v11M7 10.5l5 5 5-5M5 20h14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
 
                 <div
                   id="current-progress"
@@ -107,11 +120,33 @@
               </div>
             </div>
 
+            <!--
+              Styled as a real button so the control reads as clickable.
+              popup.js rewrites only the inner #button-title text, so the
+              arrow icon stays. The icon is inline SVG, not the CDN icon
+              font, so it still shows offline.
+            -->
             <div
-              id="button-title"
-              class="mt-3 fw-semibold text-dark"
+              class="gb-download-pill mt-3"
             >
-              Download This Page
+              <svg
+                class="gb-download-pill-icon"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path
+                  d="M8 1.5v8.8M4.5 6.8 8 10.3l3.5-3.5M2.5 13.5h11"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+
+              <span
+                id="button-title"
+              >Download This Page</span>
             </div>
 
             <div
