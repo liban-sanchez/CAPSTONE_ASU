@@ -275,6 +275,12 @@ async function processLinks() {
       true
     );
 
+    if (!html || html.trim().length === 0) {
+      updateStatus("Scraping stopped: Webpage tab was closed repeatedly. Please keep it open in the background and try again.");
+      setDownloadFlag(false);
+      return;
+    }
+
     state.zip.file(
       rootFilename,
       html
@@ -399,13 +405,34 @@ async function processLinks() {
     // ROOT PAGE
     // ========================================================
 
-    const rootHtml =
-      await processHTML(
+    let rootHtml = "";
+    try {
+      rootHtml = await processHTML(
         state.currentPage,
         "",
         savedPagesMap,
         true
       );
+    } catch (rootErr) {
+      console.warn("Root page processing failed, retrying with fresh tab...", rootErr);
+      state.sourceTabId = null;
+      try {
+        rootHtml = await processHTML(
+          state.currentPage,
+          "",
+          savedPagesMap,
+          true
+        );
+      } catch (rootRetryErr) {
+        console.error("Root page retry also failed:", rootRetryErr);
+      }
+    }
+
+    if (!rootHtml || rootHtml.trim().length === 0) {
+      updateStatus("Scraping stopped: Webpage tab was closed repeatedly. Please keep it open in the background and try again.");
+      setDownloadFlag(false);
+      return;
+    }
 
     state.zip.file(
       getTitle(
@@ -435,18 +462,31 @@ async function processLinks() {
             : "Foreground crawl is running. Saving linked pages..."
         );
 
-        const pageHtml =
-          await processHTML(
+        let pageHtml = "";
+        try {
+          pageHtml = await processHTML(
             url,
             "",
             savedPagesMap,
             false
           );
+        } catch (pageErr) {
+          console.warn(`Page ${url} failed, retrying with fresh tab...`, pageErr);
+          state.sourceTabId = null;
+          pageHtml = await processHTML(
+            url,
+            "",
+            savedPagesMap,
+            false
+          );
+        }
 
-        state.zip.file(
-          getSavedPagePath(url),
-          pageHtml
-        );
+        if (pageHtml) {
+          state.zip.file(
+            getSavedPagePath(url),
+            pageHtml
+          );
+        }
 
         completedPages++;
 
@@ -456,13 +496,16 @@ async function processLinks() {
         );
 
         /*
-         * Give the browser a chance to repaint
-         * between processed pages.
+         * Give the browser a chance to repaint and yield
+         * between processed pages. Use setTimeout instead of
+         * requestAnimationFrame so crawling continues smoothly even
+         * when neither the scraper nor the scraped window is in focus.
          */
         await new Promise(
           (resolve) =>
-            requestAnimationFrame(
-              resolve
+            setTimeout(
+              resolve,
+              50
             )
         );
 
@@ -472,6 +515,13 @@ async function processLinks() {
           "Failed processing page:",
           url,
           error
+        );
+
+        completedPages++;
+
+        updateProgress(
+          completedPages,
+          totalPages
         );
       }
     }

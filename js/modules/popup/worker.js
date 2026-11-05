@@ -33,6 +33,14 @@ export async function startWorkerCrawl(updateStatusCb) {
   try {
     const tab = await chrome.tabs.create({ url: WORKER_PAGE_URL, active: true });
     
+    // Protect both tabs from being discarded by Chrome Memory Saver during background multitasking
+    try {
+      await chrome.tabs.update(tab.id, { autoDiscardable: false });
+      if (state.sourceTabId) {
+        await chrome.tabs.update(state.sourceTabId, { autoDiscardable: false });
+      }
+    } catch (_) {}
+
     chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
       if (tabId === tab.id && changeInfo.status === "complete") {
         chrome.tabs.onUpdated.removeListener(listener);

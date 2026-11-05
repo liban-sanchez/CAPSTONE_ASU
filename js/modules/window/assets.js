@@ -379,15 +379,16 @@ export async function processCSSAndImages(
       }
 
 
+      const cssName =
+        getTitle(
+          cssHref
+        ) + ".css";
+
       if (
-        state.urlCSSs.includes(
+        !state.urlCSSs.includes(
           cssHref
         )
       ) {
-
-        continue;
-
-      }
 
 
       state.urlCSSs.push(
@@ -413,12 +414,6 @@ export async function processCSSAndImages(
           );
 
 
-        const cssName =
-          getTitle(
-            cssHref
-          ) + ".css";
-
-
         // Save CSS in configured folder.
         state.zip.file(
 
@@ -430,21 +425,22 @@ export async function processCSSAndImages(
 
         );
 
-
-        // Rewrite HTML stylesheet reference.
-        linkElement.setAttribute(
-
-          "href",
-
-          getAssetReference(
-            "styles",
-            cssName,
-            isRootPage
-          )
-
-        );
+      }
 
       }
+
+      // Rewrite HTML stylesheet reference for all pages using this CSS.
+      linkElement.setAttribute(
+
+        "href",
+
+        getAssetReference(
+          "styles",
+          cssName,
+          isRootPage
+        )
+
+      );
 
 
     } catch (error) {

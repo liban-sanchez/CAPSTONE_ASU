@@ -500,6 +500,14 @@ export function requestFallbackVideo() {
 // ============================================================
 
 export function enforceWindowSize() {
+  /*
+   * Only resize if this is running in a popup/standalone window.
+   * If running in a regular browser tab with menubar/tabbar, do not
+   * resize the user's entire browser window so multitasking is not disrupted.
+   */
+  if (window.menubar && window.menubar.visible) {
+    return;
+  }
 
   /*
    * Don't shrink the window while the
