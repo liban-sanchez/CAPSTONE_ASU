@@ -112,6 +112,24 @@ To confirm with the team:
   "elementary school teacher"; publish to the Chrome Web Store if the demo
   is approved
 
+## Board tasks (Nov 5)
+
+- [x] Download time: estimate before downloading ("Estimated time: about
+      2 minutes for 15 pages"), from the user's own past downloads or about
+      8 s a page; time left in the popup and the crawl tab
+- [x] Logging downloads: kept on the user's computer only
+      (js/modules/window/usage-log.js); popup shows "N downloads from N
+      sites", "What's recorded?" and Clear history
+- [x] Popup no longer shows an old download's status on a different page
+- [ ] Feedback form: rebuild in the shared drive (docs/FEEDBACK_FORM.md),
+      then swap the link in html/popup.html and html/window.html
+- [ ] Chrome Web Store: listing, permission reasons and privacy policy in
+      docs/STORE_LISTING.md and docs/PRIVACY_POLICY.md; promo tile in
+      docs/store/. Still needed: screenshots, a hosted privacy policy, a
+      Grey-Box developer account. Removed the unused webRequest permission
+      and the CDN icon stylesheet; version 3.3.0. Build the upload ZIP with:
+      zip -r -X dist/project-scraper-3.3.0.zip manifest.json html css js lib images
+
 ## Merge history
 
 - Oct 29: Dharshan merged most of samuel-kim into main by hand

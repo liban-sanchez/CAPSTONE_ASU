@@ -17,11 +17,6 @@
 
     <link
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
-    />
-
-    <link
-      rel="stylesheet"
       href="../css/styles.css"
     />
   </head>
@@ -128,12 +123,26 @@
               class="small text-muted mt-1 text-truncate px-2"
             ></div>
 
+            <!-- How long the download will take; see estimate.js -->
+            <div
+              id="time-estimate"
+              class="small text-muted mt-1 px-2"
+              style="display: none;"
+            ></div>
+
             <div
               id="progress-section"
               class="small fw-semibold text-dark mt-2 px-2"
               style="display: none;"
             >
               <span id="popup-status">Waiting to start</span>
+
+              <!-- Time left while a download runs -->
+              <div
+                id="popup-eta"
+                class="small text-muted fw-normal mt-1"
+                style="display: none;"
+              ></div>
 
               <!--
                 The download runs in a background tab so the user stays
@@ -726,6 +735,62 @@
         >
           Provide Feedback
         </a>
+
+
+        <!--
+          Usage summary. Valentin (Oct 29): whatever is tracked, the user
+          must be able to click and see exactly what. Written by
+          js/modules/window/usage-log.js, shown by js/modules/popup/usage.js.
+        -->
+        <div
+          class="border-top mt-3 pt-2"
+        >
+          <div
+            class="d-flex justify-content-between align-items-center small"
+          >
+            <span
+              id="usage-summary"
+              class="text-muted"
+            >No downloads yet</span>
+
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0"
+              data-bs-toggle="collapse"
+              data-bs-target="#usage-details"
+              aria-expanded="false"
+              aria-controls="usage-details"
+            >
+              What's recorded?
+            </button>
+          </div>
+
+          <div
+            id="usage-details"
+            class="collapse small text-muted mt-2"
+          >
+            <p class="mb-1">
+              Each download is noted on this computer only. Nothing is sent
+              to Grey-Box or anyone else.
+            </p>
+            <p class="mb-1">
+              Recorded: the date and time, the website's name (not the full
+              address), depth, pages saved, how long it took, ZIP size, and
+              whether it finished.
+            </p>
+            <p class="mb-2">
+              It is used to count your saved sites and to estimate how long
+              downloads take.
+            </p>
+            <button
+              type="button"
+              id="usage-clear"
+              class="btn btn-outline-secondary btn-sm"
+            >
+              Clear history
+            </button>
+          </div>
+        </div>
       </section>
 
     </main>

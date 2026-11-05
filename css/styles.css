@@ -294,6 +294,17 @@ body.gb-worker {
   color: var(--gb-text);
 }
 
+/* Time left, under the status line */
+.gb-worker-eta {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--gb-muted);
+}
+
+.gb-worker-eta:empty {
+  display: none;
+}
+
 .gb-worker-hint {
   margin-top: 6px;
   font-size: 13px;

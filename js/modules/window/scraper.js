@@ -30,7 +30,8 @@ import {
   progressBar,
   requestFallbackVideo,
   startDownloadTimer,
-  finishDownloadTimer
+  finishDownloadTimer,
+  setEta
 } from './ui.js';
 
 import {
@@ -41,6 +42,11 @@ import {
 import {
   buildPackageName
 } from './package-name.js';
+
+import {
+  markDownloadStart,
+  recordDownload
+} from './usage-log.js';
 
 import {
   processImages,
@@ -644,6 +650,8 @@ export async function startScrapingProcess() {
 
     startDownloadTimer();
 
+    markDownloadStart();
+
     state.videoDownloadFailed =
       false;
 
@@ -750,12 +758,7 @@ export async function startScrapingProcess() {
        * - clicks Continue Without Video
        */
 
-      const etaFallback =
-        document.getElementById("estimated-time-remaining");
-
-      if (etaFallback) {
-        etaFallback.innerText = "Waiting for video selection...";
-      }
+      setEta("Waiting for video selection...");
 
       const fallbackFile =
         await requestFallbackVideo();
@@ -855,12 +858,7 @@ export async function startScrapingProcess() {
       "Preparing ZIP download..."
     );
 
-    const etaFinalizing =
-      document.getElementById("estimated-time-remaining");
-
-    if (etaFinalizing) {
-      etaFinalizing.innerText = "Finalizing download...";
-    }
+    setEta("Finishing the ZIP...");
 
     if (currentProgress) {
 
@@ -967,12 +965,9 @@ export async function startScrapingProcess() {
             "Download failed. Chrome could not save the ZIP."
           );
 
-          const etaFailed =
-            document.getElementById("estimated-time-remaining");
+          recordDownload("failed", content.size);
 
-          if (etaFailed) {
-            etaFailed.innerText = "Download failed";
-          }
+          setEta("");
 
           setDownloadFlag(
             false
@@ -1045,6 +1040,8 @@ export async function startScrapingProcess() {
             "Download complete. " + zipName + " is in your downloads folder."
           );
 
+          recordDownload("complete", content.size);
+
           finishDownloadTimer();
 
           // Allow another scrape.
@@ -1078,12 +1075,9 @@ export async function startScrapingProcess() {
       "Download failed. Check the console for details."
     );
 
-    const etaError =
-      document.getElementById("estimated-time-remaining");
+    recordDownload("failed");
 
-    if (etaError) {
-      etaError.innerText = "Download failed";
-    }
+    setEta("");
 
     setDownloadFlag(
       false

@@ -8,6 +8,8 @@
  * - fixed window size
  */
 
+import { state } from './state.js';
+
 const progressChannel = new BroadcastChannel("scraper_progress");
 
 export const feedbackFormSection =
@@ -87,27 +89,53 @@ let lastProgressTime = null;
 let lastProgressFraction = 0;
 let smoothedProgressRate = null;
 
+/*
+ * Everything the popup shows about a running download is also saved
+ * here, so a popup opened mid-crawl (or after it) shows the same thing.
+ * The popup only replays it while the crawl runs, or for the same page.
+ */
+let progressSnapshot = {};
+
+function saveProgressSnapshot(patch) {
+  progressSnapshot = {
+    ...progressSnapshot,
+    ...patch,
+    page: state.startingURLInput || "",
+    updatedAt: Date.now()
+  };
+
+  try {
+    chrome.storage.local.set({ lastProgress: progressSnapshot });
+  } catch (error) {
+    // Progress display only; never break the crawl over it.
+  }
+}
+
+/**
+ * Shows the time estimate in this tab and in the popup.
+ */
+export function setEta(text) {
+  if (estimatedTimeRemaining) {
+    estimatedTimeRemaining.innerText = text;
+  }
+
+  progressChannel.postMessage({ eta: text });
+  saveProgressSnapshot({ eta: text });
+}
+
 export function startDownloadTimer() {
   downloadStartTime = performance.now();
   lastProgressTime = null;
   lastProgressFraction = 0;
   smoothedProgressRate = null;
-
-  if (estimatedTimeRemaining) {
-    estimatedTimeRemaining.innerText =
-      "Calculating...";
-  }
+  setEta("Calculating time left...");
 }
 
 export function finishDownloadTimer() {
   downloadStartTime = null;
   lastProgressTime = null;
   smoothedProgressRate = null;
-
-  if (estimatedTimeRemaining) {
-    estimatedTimeRemaining.innerText =
-      "Completed";
-  }
+  setEta("");
 }
 
 export function formatRemainingTime(seconds) {
@@ -115,14 +143,11 @@ export function formatRemainingTime(seconds) {
     0,
     Math.ceil(seconds)
   );
-
   const minutes = Math.floor(totalSeconds / 60);
   const remainingSeconds = totalSeconds % 60;
-
   if (minutes > 0) {
     return `${minutes}m ${remainingSeconds}s`;
   }
-
   return `${remainingSeconds}s`;
 }
 
@@ -139,6 +164,7 @@ export function updateProgress(currentCount, totalCount) {
   const percentage = Math.ceil(fraction * 100);
 
   progressChannel.postMessage({ percentage });
+  saveProgressSnapshot({ percentage, isRunning: true });
 
   const progressPercentage = `${percentage}%`;
 
@@ -157,13 +183,8 @@ export function updateProgress(currentCount, totalCount) {
     startDownloadTimer();
   }
 
-  if (!estimatedTimeRemaining) {
-    return;
-  }
-
   if (fraction >= 1) {
-    estimatedTimeRemaining.innerText =
-      "Finalizing download...";
+    setEta("Finishing the ZIP...");
     return;
   }
 
@@ -173,8 +194,7 @@ export function updateProgress(currentCount, totalCount) {
 
   // Wait for enough progress before estimating.
   if (elapsedSeconds < 3 || fraction < 0.05) {
-    estimatedTimeRemaining.innerText =
-      "Calculating...";
+    setEta("Calculating time left...");
     return;
   }
 
@@ -184,14 +204,12 @@ export function updateProgress(currentCount, totalCount) {
   ) {
     const timeDifference =
       (now - lastProgressTime) / 1000;
-
     const progressDifference =
       fraction - lastProgressFraction;
 
     if (timeDifference > 0) {
       const currentRate =
         progressDifference / timeDifference;
-
       smoothedProgressRate =
         smoothedProgressRate === null
           ? currentRate
@@ -207,21 +225,18 @@ export function updateProgress(currentCount, totalCount) {
     smoothedProgressRate ?? averageRate;
 
   if (rate <= 0) {
-    estimatedTimeRemaining.innerText =
-      "Calculating...";
+    setEta("Calculating time left...");
     return;
   }
 
   const remainingSeconds =
     (1 - fraction) / rate;
 
-  estimatedTimeRemaining.innerText =
-    `~ ${formatRemainingTime(remainingSeconds)} remaining`;
+  setEta(`About ${formatRemainingTime(remainingSeconds)} left`);
 
   lastProgressTime = now;
   lastProgressFraction = fraction;
 }
-
 
 // ============================================================
 // STATUS
@@ -230,6 +245,11 @@ export function updateProgress(currentCount, totalCount) {
 export function updateStatus(message) {
 
   progressChannel.postMessage({ message });
+
+  saveProgressSnapshot({
+    message,
+    isRunning: !/complete|failed|stopped/i.test(message)
+  });
 
   if (statusMessage) {
     statusMessage.innerText = message;

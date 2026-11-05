@@ -11,6 +11,8 @@ import { detectPageVideo } from './modules/popup/video.js';
 import { initDepthUI } from './modules/popup/depth.js';
 import { initProgressUI } from './modules/popup/progress.js';
 import { clearStaleDownloadFlag, startWorkerCrawl, focusWorkerTab, hasWorkerTab } from './modules/popup/worker.js';
+import { estimateDownload, describeEstimate } from './modules/popup/estimate.js';
+import { initUsageSummary } from './modules/popup/usage.js';
 
 // ============================================================
 // DOM ELEMENTS
@@ -45,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   clearStaleDownloadFlag();
   initTooltips();
   progressUIHandlers = initProgressUI();
+  initUsageSummary();
   depthUIHandlers = initDepthUI(updateDepthOneUI);
 
   chrome.storage.sync.get((items) => {
@@ -70,6 +73,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     detectPageVideo();
+
+    // Replay progress only for a download that is still running, or one
+    // that just finished on this page.
+    hasWorkerTab().then((workerOpen) => {
+      progressUIHandlers.restoreLastProgress(state.currentPage, workerOpen);
+    });
+
+    refreshTimeEstimate();
   });
 });
 
@@ -281,4 +292,48 @@ if (openWorkerTabLink) {
   });
 
   updateOpenWorkerTabLink();
+}
+
+
+// ============================================================
+// TIME ESTIMATE
+// "For each download, tell the user how long it will take."
+// Recomputed whenever a setting changes; see estimate.js.
+// ============================================================
+const timeEstimate = document.getElementById("time-estimate");
+let estimateTimer = null;
+let estimateRun = 0;
+
+async function refreshTimeEstimate() {
+  if (!timeEstimate) return;
+
+  const { downloadFlag } = await chrome.storage.sync.get("downloadFlag");
+  if (downloadFlag) {
+    timeEstimate.style.display = "none";
+    return;
+  }
+
+  const run = ++estimateRun;
+  const estimate = await estimateDownload();
+  if (run !== estimateRun) return; // a newer change already started
+
+  const text = describeEstimate(estimate);
+  timeEstimate.textContent = text;
+  timeEstimate.title = estimate && estimate.fromHistory
+    ? `Based on your last ${estimate.fromHistory} downloads`
+    : "Based on about 8 seconds a page";
+  timeEstimate.style.display = text ? "block" : "none";
+}
+
+function scheduleTimeEstimate() {
+  clearTimeout(estimateTimer);
+  estimateTimer = setTimeout(refreshTimeEstimate, 250);
+}
+
+// Any setting change (depth, switches, link picks, scan buttons).
+document.addEventListener("change", scheduleTimeEstimate);
+document.addEventListener("input", scheduleTimeEstimate);
+for (const id of ["select-all-links-button", "clear-all-links-button", "scan-links-button"]) {
+  const button = document.getElementById(id);
+  if (button) button.addEventListener("click", () => setTimeout(scheduleTimeEstimate, 50));
 }
