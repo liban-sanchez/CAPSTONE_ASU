@@ -27,11 +27,44 @@ export async function clearStaleDownloadFlag() {
   }
 }
 
+/**
+ * Switches to the download tab, if one is open.
+ * Returns false when there is no download tab.
+ */
+export async function focusWorkerTab() {
+  try {
+    const tabs = await chrome.tabs.query({ url: WORKER_PAGE_URL });
+    if (!tabs || tabs.length === 0) return false;
+    const tab = tabs[0];
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true });
+    return true;
+  } catch (error) {
+    console.warn("Could not switch to the download tab:", error);
+    return false;
+  }
+}
+
+/**
+ * True when a download tab is open.
+ */
+export async function hasWorkerTab() {
+  try {
+    const tabs = await chrome.tabs.query({ url: WORKER_PAGE_URL });
+    return Boolean(tabs && tabs.length > 0);
+  } catch (error) {
+    return false;
+  }
+}
+
 export async function startWorkerCrawl(updateStatusCb) {
   updateStatusCb("Starting...");
   
   try {
-    const tab = await chrome.tabs.create({ url: WORKER_PAGE_URL, active: true });
+    // Open in the background: the user stays on their page and can
+    // switch to the download tab from the popup whenever they like.
+    const tab = await chrome.tabs.create({ url: WORKER_PAGE_URL, active: false });
+    updateStatusCb("Downloading in a background tab. You can keep browsing.");
     
     // Protect both tabs from being discarded by Chrome Memory Saver during background multitasking
     try {

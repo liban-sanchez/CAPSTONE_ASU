@@ -87,6 +87,27 @@ To confirm with the team:
   (requestFallbackVideo in js/modules/window/ui.js); check that the popup's
   video block and that flow say the same thing.
 
+## From the Oct 29 meeting
+
+- [x] Restrict Domain on by default (already done)
+- [x] Remove the redundant "save" text: the "Saves this page for offline
+      browsing" line under the Download button is gone
+- [x] Advanced options moved to its own card at the bottom of the popup
+- [x] The download tab opens in the background, so the user stays on their
+      page and the popup stays open with the progress ring. A "Go to
+      download tab" link switches to it while it is open
+- [x] Fixed an unclosed <div> around the popup title (from the Oct 29 merge)
+- [ ] Samuel: copy the feedback form into the shared drive (the current
+      form is on a personal account). Then update the "Provide Feedback"
+      link in html/popup.html
+- [ ] Samuel: create a backlog item for usage tracking (e.g. number of
+      sites saved)
+- [ ] Samuel: update hours and post a November work plan
+- Team: Liban records the demo video and leads the task tracker cleanup;
+  sprint meeting to clean up the tracker; user stories use personas such as
+  "elementary school teacher"; publish to the Chrome Web Store if the demo
+  is approved
+
 ## Merge history
 
 - Oct 29: Dharshan merged most of samuel-kim into main by hand

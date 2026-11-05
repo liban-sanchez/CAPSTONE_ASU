@@ -10,7 +10,7 @@ import { initTooltips } from './modules/popup/tooltips.js';
 import { detectPageVideo } from './modules/popup/video.js';
 import { initDepthUI } from './modules/popup/depth.js';
 import { initProgressUI } from './modules/popup/progress.js';
-import { clearStaleDownloadFlag, startWorkerCrawl } from './modules/popup/worker.js';
+import { clearStaleDownloadFlag, startWorkerCrawl, focusWorkerTab, hasWorkerTab } from './modules/popup/worker.js';
 
 // ============================================================
 // DOM ELEMENTS
@@ -254,10 +254,31 @@ function handleStartDownload() {
       }
       
       if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Foreground Crawl Running...";
-      startWorkerCrawl(progressUIHandlers.updatePopupStatus);
+      startWorkerCrawl(progressUIHandlers.updatePopupStatus).then(updateOpenWorkerTabLink);
     } else {
       const toastEl = document.getElementById("toast");
       if (toastEl && typeof bootstrap !== "undefined") new bootstrap.Toast(toastEl).show();
     }
   });
+}
+
+// ============================================================
+// GO TO DOWNLOAD TAB
+// The download runs in a background tab; this link switches to it.
+// Shown only while that tab is open.
+// ============================================================
+const openWorkerTabLink = document.getElementById("open-worker-tab");
+
+async function updateOpenWorkerTabLink() {
+  if (!openWorkerTabLink) return;
+  openWorkerTabLink.style.display = (await hasWorkerTab()) ? "block" : "none";
+}
+
+if (openWorkerTabLink) {
+  openWorkerTabLink.addEventListener("click", async () => {
+    const switched = await focusWorkerTab();
+    if (!switched) openWorkerTabLink.style.display = "none";
+  });
+
+  updateOpenWorkerTabLink();
 }
