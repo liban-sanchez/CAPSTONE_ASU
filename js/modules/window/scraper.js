@@ -39,6 +39,10 @@ import {
 } from './crawler.js';
 
 import {
+  buildPackageName
+} from './package-name.js';
+
+import {
   processImages,
   processPdfs,
   processCSSAndImages,
@@ -874,11 +878,14 @@ export async function startScrapingProcess() {
     // ZIP NAME
     // ========================================================
 
+    // Versioned name: site (or custom package name), date,
+    // time and depth. See package-name.js.
     const zipName =
-  state.packageConfig?.packageName ||
-  new URL(
-    state.startingURLInput
-  ).hostname;
+      buildPackageName(
+        state.startingURLInput,
+        state.maxDepthValue,
+        state.packageConfig?.packageName
+      );
 
     // ========================================================
     // GENERATE ZIP
@@ -914,10 +921,17 @@ export async function startScrapingProcess() {
           urlBlob,
 
         filename:
-          zipName + ".zip",
+          zipName,
 
+        // No Save As dialog: the crawl should never sit
+        // waiting on input. The ZIP goes to the browser's
+        // downloads folder, and a name clash gets a number
+        // added instead of overwriting.
         saveAs:
-          true
+          false,
+
+        conflictAction:
+          "uniquify"
       });
 
     // ========================================================
@@ -929,6 +943,49 @@ export async function startScrapingProcess() {
       function listener(
         downloadItem
       ) {
+
+        // ==================================================
+        // DOWNLOAD INTERRUPTED
+        // Report it instead of waiting forever.
+        // ==================================================
+
+        if (
+          downloadItem.id ===
+            downloadId &&
+
+          downloadItem.state &&
+
+          downloadItem.state.current ===
+            "interrupted"
+        ) {
+
+          chrome.downloads.onChanged.removeListener(
+            listener
+          );
+
+          updateStatus(
+            "Download failed. Chrome could not save the ZIP."
+          );
+
+          const etaFailed =
+            document.getElementById("estimated-time-remaining");
+
+          if (etaFailed) {
+            etaFailed.innerText = "Download failed";
+          }
+
+          setDownloadFlag(
+            false
+          );
+
+          URL.revokeObjectURL(
+            urlBlob
+          );
+
+          resetAssetState();
+
+          return;
+        }
 
         if (
           downloadItem.id ===
@@ -985,7 +1042,7 @@ export async function startScrapingProcess() {
           // ==================================================
 
           updateStatus(
-            "Download complete. Your ZIP should now be in your Downloads Folder."
+            "Download complete. " + zipName + " is in your downloads folder."
           );
 
           finishDownloadTimer();
