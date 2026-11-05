@@ -92,9 +92,15 @@ let smoothedProgressRate = null;
 /*
  * Everything the popup shows about a running download is also saved
  * here, so a popup opened mid-crawl (or after it) shows the same thing.
- * The popup only replays it while the crawl runs, or for the same page.
+ * The popup picks a running download back up when reopened. Once a
+ * download has finished (finishedAt is set) and the popup has shown
+ * that, the next popup starts fresh; see js/modules/popup/progress.js.
  */
-let progressSnapshot = {};
+let progressSnapshot = {
+  startedAt: Date.now(),
+  isRunning: true,
+  percentage: 0
+};
 
 function saveProgressSnapshot(patch) {
   progressSnapshot = {
@@ -244,12 +250,18 @@ export function updateProgress(currentCount, totalCount) {
 
 export function updateStatus(message) {
 
-  progressChannel.postMessage({ message });
+  const finished = /complete|failed|stopped/i.test(message);
 
+  // Save first, so finishedAt is stored before the popup hears about it.
   saveProgressSnapshot({
     message,
-    isRunning: !/complete|failed|stopped/i.test(message)
+    isRunning: !finished,
+    finishedAt: finished
+      ? (progressSnapshot.finishedAt || Date.now())
+      : null
   });
+
+  progressChannel.postMessage({ message, finished });
 
   if (statusMessage) {
     statusMessage.innerText = message;

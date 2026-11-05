@@ -475,7 +475,8 @@ body.gb-worker {
 
 .gb-dial-value {
   fill: none;
-  stroke: var(--gb-primary);
+  /* The green ring is the progress bar */
+  stroke: #16a34a;
   stroke-width: 6;
   stroke-linecap: round;
   stroke-dasharray: 345.6;
@@ -525,7 +526,7 @@ body.gb-worker {
   display: none;
   font-size: 22px;
   font-weight: 700;
-  color: var(--gb-primary);
+  color: #16a34a;
 }
 
 /* While a crawl runs, the face turns white and the number leads */

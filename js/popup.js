@@ -265,6 +265,8 @@ function handleStartDownload() {
       }
       
       if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Download";
+      progressUIHandlers.setRunPage(state.currentPage);
+      progressUIHandlers.startNewRun();
       startWorkerCrawl(progressUIHandlers.updatePopupStatus).then(updateOpenWorkerTabLink);
     } else {
       const toastEl = document.getElementById("toast");
