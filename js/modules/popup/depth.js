@@ -61,7 +61,7 @@ export function initDepthUI(onDepthChangeCallback) {
     if (state.maxDepthValue > HIGHEST_CRAWLED_DEPTH) {
       const note = document.createElement("div");
       note.className = "gb-depth-warning-note";
-      note.textContent = `Depths above ${HIGHEST_CRAWLED_DEPTH} are not crawled yet in this alpha, so the download will be empty. Use depth 0 or 1 for now.`;
+      note.textContent = `Depths above ${HIGHEST_CRAWLED_DEPTH} are not crawled yet, so the download will be empty. Use depth 0 or 1 for now.`;
       depthWarning.append(note);
     }
     depthWarning.style.display = "block";

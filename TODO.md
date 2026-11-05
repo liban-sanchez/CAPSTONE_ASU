@@ -90,9 +90,13 @@ To confirm with the team:
 ## From the Oct 29 meeting
 
 - [x] Restrict Domain on by default (already done)
-- [x] Remove the redundant "save" text: the "Saves this page for offline
-      browsing" line under the Download button is gone
-- [x] Advanced options moved to its own card at the bottom of the popup
+- [x] Stop repeating save/download (Valentin: "save, save, save"): one round
+      button with "Download" inside it. The separate "Download This Page"
+      pill and the "Saves this page for offline browsing" line are gone
+- [x] No "alpha": the popup, feedback text, depth warning and extension
+      name now just say Project Scraper
+- [x] Advanced options in its own card towards the end, above Feedback
+      (Focus Mode and Download multiple URLs stay inside it)
 - [x] The download tab opens in the background, so the user stays on their
       page and the popup stays open with the progress ring. A "Go to
       download tab" link switches to it while it is open

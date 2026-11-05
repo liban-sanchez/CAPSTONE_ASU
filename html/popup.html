@@ -107,40 +107,20 @@
                   />
                 </svg>
 
+                <!--
+                  The one Download button (Oct 29 review: say it once,
+                  inside the button). popup.js only rewrites this text.
+                -->
+                <span
+                  id="button-title"
+                  class="gb-dial-label"
+                >Download</span>
+
                 <div
                   id="current-progress"
                   class="gb-dial-percent"
                 ></div>
               </div>
-            </div>
-
-            <!--
-              Styled as a real button so the control reads as clickable.
-              popup.js rewrites only the inner #button-title text, so the
-              arrow icon stays. The icon is inline SVG, not the CDN icon
-              font, so it still shows offline.
-            -->
-            <div
-              class="gb-download-pill mt-3"
-            >
-              <svg
-                class="gb-download-pill-icon"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-              >
-                <path
-                  d="M8 1.5v8.8M4.5 6.8 8 10.3l3.5-3.5M2.5 13.5h11"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-
-              <span
-                id="button-title"
-              >Download This Page</span>
             </div>
 
             <div
@@ -285,46 +265,16 @@
       </section>
 
 
-      <!-- ================================================= -->
-      <!-- FEEDBACK -->
-      <!-- ================================================= -->
-
-      <section
-        id="feedback-form-section"
-        class="bg-white rounded shadow-sm border p-3"
-      >
-        <div
-          class="fw-semibold text-dark mb-1"
-        >
-          Feedback
-        </div>
-
-        <div
-          class="small text-muted mb-2"
-        >
-          Help us improve the alpha experience.
-        </div>
-
-        <a
-          class="btn btn-secondary btn-sm"
-          href="https://forms.gle/p6quKSCDj5PoyVb37"
-          target="_blank"
-        >
-          Provide Feedback
-        </a>
-      </section>
-
-
 
 
       <!-- ================================================= -->
       <!-- ADVANCED OPTIONS -->
-      <!-- At the bottom of the popup, per the Oct 29 review -->
+      <!-- Towards the end, above Feedback (Oct 29 review) -->
       <!-- ================================================= -->
 
       <section
         id="advanced-options-card"
-        class="bg-white rounded shadow-sm border p-3 mt-3"
+        class="bg-white rounded shadow-sm border p-3 mb-3"
       >
         <button
           class="btn btn-sm btn-outline-secondary w-100"
@@ -744,6 +694,38 @@
               </div>
             </div>
         </div>
+      </section>
+
+
+
+
+      <!-- ================================================= -->
+      <!-- FEEDBACK -->
+      <!-- ================================================= -->
+
+      <section
+        id="feedback-form-section"
+        class="bg-white rounded shadow-sm border p-3"
+      >
+        <div
+          class="fw-semibold text-dark mb-1"
+        >
+          Feedback
+        </div>
+
+        <div
+          class="small text-muted mb-2"
+        >
+          Help us improve Project Scraper.
+        </div>
+
+        <a
+          class="btn btn-secondary btn-sm"
+          href="https://forms.gle/p6quKSCDj5PoyVb37"
+          target="_blank"
+        >
+          Provide Feedback
+        </a>
       </section>
 
     </main>

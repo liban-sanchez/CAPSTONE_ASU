@@ -253,7 +253,7 @@ function handleStartDownload() {
         return;
       }
       
-      if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Foreground Crawl Running...";
+      if (document.getElementById("button-title")) document.getElementById("button-title").innerText = "Download";
       startWorkerCrawl(progressUIHandlers.updatePopupStatus).then(updateOpenWorkerTabLink);
     } else {
       const toastEl = document.getElementById("toast");

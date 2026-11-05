@@ -35,7 +35,7 @@ export function initProgressUI() {
     
     if (submitButton && /complete|failed/i.test(message)) {
       submitButton.classList.add("gb-dial-done");
-      if (buttonTitle) buttonTitle.innerText = "Download This Page";
+      if (buttonTitle) buttonTitle.innerText = "Download";
     }
   }
 
@@ -44,7 +44,7 @@ export function initProgressUI() {
     if (!last) return;
     updatePopupProgress(last.percentage);
     updatePopupStatus(last.message || "Waiting to start");
-    if (last.isRunning && buttonTitle) buttonTitle.innerText = "Foreground Crawl Running...";
+    if (last.isRunning && buttonTitle) buttonTitle.innerText = "Download";
   });
 
   progressChannel.addEventListener("message", (event) => {
