@@ -101,9 +101,8 @@ To confirm with the team:
       page and the popup stays open with the progress ring. A "Go to
       download tab" link switches to it while it is open
 - [x] Fixed an unclosed <div> around the popup title (from the Oct 29 merge)
-- [ ] Samuel: copy the feedback form into the shared drive (the current
-      form is on a personal account). Then update the "Provide Feedback"
-      link in html/popup.html
+- [x] Samuel: copy the feedback form into the shared drive and update the
+      "Provide Feedback" links (Nov 5)
 - [ ] Samuel: create a backlog item for usage tracking (e.g. number of
       sites saved)
 - [ ] Samuel: update hours and post a November work plan
@@ -121,8 +120,8 @@ To confirm with the team:
       (js/modules/window/usage-log.js); popup shows "N downloads from N
       sites", "What's recorded?" and Clear history
 - [x] Popup no longer shows an old download's status on a different page
-- [ ] Feedback form: rebuild in the shared drive (docs/FEEDBACK_FORM.md),
-      then swap the link in html/popup.html and html/window.html
+- [x] Feedback form: rebuilt by Samuel (https://forms.gle/bC5gwJt6jbT8bodA9);
+      linked from the popup and the download tab
 - [ ] Chrome Web Store: listing, permission reasons and privacy policy in
       docs/STORE_LISTING.md and docs/PRIVACY_POLICY.md; promo tile in
       docs/store/. Still needed: screenshots, a hosted privacy policy, a

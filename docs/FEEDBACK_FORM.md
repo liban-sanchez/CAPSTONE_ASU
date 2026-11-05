@@ -1,5 +1,9 @@
 # Feedback form: copy for the Grey-Box shared drive
 
+**Done Nov 5:** the new form is https://forms.gle/bC5gwJt6jbT8bodA9 and the
+extension links to it (popup and download tab). The old form below is no
+longer linked.
+
 Valentin (Oct 29): the current form is owned by a former student, so
 nobody on the team can read the answers. Rebuild it **as is** in the
 scraper project's shared drive, then point the extension at the new link.
