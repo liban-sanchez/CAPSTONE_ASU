@@ -8,7 +8,7 @@
  * - fixed window size
  */
 
-import { state } from './state.js';
+import { state, resetAssetState } from './state.js';
 
 const progressChannel = new BroadcastChannel("scraper_progress");
 
@@ -88,6 +88,8 @@ let downloadStartTime = null;
 let lastProgressTime = null;
 let lastProgressFraction = 0;
 let smoothedProgressRate = null;
+let pauseStartTime = null;
+let totalPausedMs = 0;
 
 /*
  * Everything the popup shows about a running download is also saved
@@ -134,6 +136,8 @@ export function startDownloadTimer() {
   lastProgressTime = null;
   lastProgressFraction = 0;
   smoothedProgressRate = null;
+  pauseStartTime = null;
+  totalPausedMs = 0;
   setEta("Calculating time left...");
 }
 
@@ -141,6 +145,8 @@ export function finishDownloadTimer() {
   downloadStartTime = null;
   lastProgressTime = null;
   smoothedProgressRate = null;
+  pauseStartTime = null;
+  totalPausedMs = 0;
   setEta("");
 }
 
@@ -184,6 +190,11 @@ export function updateProgress(currentCount, totalCount) {
     progressBar.style.width = progressPercentage;
   }
 
+  // If paused, keep ETA as "Paused" and do not recalculate rates
+  if (state.isPaused) {
+    return;
+  }
+
   // Calculate estimated time remaining.
   if (downloadStartTime === null) {
     startDownloadTimer();
@@ -196,7 +207,7 @@ export function updateProgress(currentCount, totalCount) {
 
   const now = performance.now();
   const elapsedSeconds =
-    (now - downloadStartTime) / 1000;
+    Math.max(0.1, ((now - downloadStartTime) - totalPausedMs) / 1000);
 
   // Wait for enough progress before estimating.
   if (elapsedSeconds < 3 || fraction < 0.05) {
@@ -250,7 +261,7 @@ export function updateProgress(currentCount, totalCount) {
 
 export function updateStatus(message) {
 
-  const finished = /complete|failed|stopped/i.test(message);
+  const finished = /complete|failed|stopped|cancelled/i.test(message);
 
   // Save first, so finishedAt is stored before the popup hears about it.
   saveProgressSnapshot({
@@ -570,5 +581,199 @@ export function enforceWindowSize() {
       "Unable to resize popup window:",
       error
     );
+  }
+}
+
+// ============================================================
+// CRAWLER CONTROLS: PAUSE / RESUME, STOP, CANCEL
+// ============================================================
+
+/**
+ * Checks if crawling is paused or cancelled.
+ * If paused, blocks and awaits resume.
+ * If stopped or cancelled, throws corresponding error to abort.
+ */
+export async function checkPauseOrAbort() {
+  if (state.isCancelled) {
+    throw new Error("SCRAPING_CANCELLED");
+  }
+
+  if (state.isStopped) {
+    throw new Error("SCRAPING_STOPPED");
+  }
+
+  if (state.isPaused) {
+    await new Promise((resolve) => {
+      state.resumeResolve = resolve;
+    });
+  }
+
+  if (state.isCancelled) {
+    throw new Error("SCRAPING_CANCELLED");
+  }
+
+  if (state.isStopped) {
+    throw new Error("SCRAPING_STOPPED");
+  }
+}
+
+export function disableControls() {
+  const pauseBtn = document.getElementById("pause-resume-button");
+  const stopBtn = document.getElementById("stop-button");
+  const cancelBtn = document.getElementById("cancel-button");
+
+  if (pauseBtn) pauseBtn.disabled = true;
+  if (stopBtn) stopBtn.disabled = true;
+  if (cancelBtn) cancelBtn.disabled = true;
+}
+
+export function togglePauseResume() {
+  if (state.isCancelled || state.scrapingDone || state.isStopped) return;
+
+  const pauseBtn = document.getElementById("pause-resume-button");
+  const pauseText = document.getElementById("pause-resume-text");
+  const pauseIcon = document.getElementById("pause-resume-icon");
+
+  if (!state.isPaused) {
+    // PAUSE
+    state.isPaused = true;
+    if (pauseStartTime === null) {
+      pauseStartTime = performance.now();
+    }
+
+    if (pauseText) pauseText.textContent = "Resume";
+    if (pauseIcon) pauseIcon.textContent = "▶";
+    if (pauseBtn) {
+      pauseBtn.classList.remove("btn-outline-primary");
+      pauseBtn.classList.add("btn-primary");
+    }
+
+    if (progressBar) {
+      progressBar.classList.remove("progress-bar-animated");
+    }
+
+    state.statusBeforePause = statusMessage ? statusMessage.innerText : "";
+    updateStatus("Download paused. Click Resume to continue.");
+    setEta("Paused");
+  } else {
+    // RESUME
+    state.isPaused = false;
+    if (pauseStartTime !== null) {
+      totalPausedMs += (performance.now() - pauseStartTime);
+      pauseStartTime = null;
+    }
+
+    if (pauseText) pauseText.textContent = "Pause";
+    if (pauseIcon) pauseIcon.textContent = "❚❚";
+    if (pauseBtn) {
+      pauseBtn.classList.remove("btn-primary");
+      pauseBtn.classList.add("btn-outline-primary");
+    }
+
+    if (progressBar) {
+      progressBar.classList.add("progress-bar-animated");
+    }
+
+    updateStatus(state.statusBeforePause || "Foreground crawl is running.");
+    setEta("Calculating time left...");
+
+    if (typeof state.resumeResolve === "function") {
+      const resolve = state.resumeResolve;
+      state.resumeResolve = null;
+      resolve();
+    }
+  }
+}
+
+export function handleStopDownload() {
+  if (state.isCancelled || state.scrapingDone || state.isStopped) return;
+
+  state.isStopped = true;
+
+  // If paused, unpause immediately to allow loop to proceed directly to ZIP packaging
+  if (state.isPaused) {
+    state.isPaused = false;
+    if (typeof state.resumeResolve === "function") {
+      const resolve = state.resumeResolve;
+      state.resumeResolve = null;
+      resolve();
+    }
+  }
+
+  disableControls();
+  updateStatus("Stopping crawl. Packaging pages collected so far into ZIP...");
+  setEta("Finishing the ZIP...");
+}
+
+export async function handleCancelDownload() {
+  if (state.isCancelled || state.scrapingDone) return;
+
+  const confirmed = window.confirm("Are you sure you want to cancel the download? All progress will be discarded.");
+  if (!confirmed) return;
+
+  state.isCancelled = true;
+
+  // If paused, unpause immediately so any waiting promise unblocks and aborts
+  if (state.isPaused) {
+    state.isPaused = false;
+    if (typeof state.resumeResolve === "function") {
+      const resolve = state.resumeResolve;
+      state.resumeResolve = null;
+      resolve();
+    }
+  }
+
+  disableControls();
+
+  updateStatus("Download cancelled. No files were saved.");
+  setEta("");
+
+  if (progressBar) {
+    progressBar.style.width = "0%";
+    progressBar.classList.remove("progress-bar-animated");
+  }
+  if (currentProgress) {
+    currentProgress.innerText = "Cancelled";
+  }
+
+  // Close created background tabs if any
+  try {
+    const { closeCreatedTabs } = await import('./crawler.js');
+    await closeCreatedTabs();
+  } catch (_) {}
+
+  // Reset asset/zip state and download flag
+  resetAssetState();
+  try {
+    chrome.storage.sync.set({ downloadFlag: false });
+  } catch (_) {}
+  finishDownloadTimer();
+}
+
+export function initCrawlerControls() {
+  const pauseBtn = document.getElementById("pause-resume-button");
+  const stopBtn = document.getElementById("stop-button");
+  const cancelBtn = document.getElementById("cancel-button");
+
+  if (pauseBtn && !pauseBtn.dataset.bound) {
+    pauseBtn.dataset.bound = "true";
+    pauseBtn.addEventListener("click", togglePauseResume);
+  }
+  if (stopBtn && !stopBtn.dataset.bound) {
+    stopBtn.dataset.bound = "true";
+    stopBtn.addEventListener("click", handleStopDownload);
+  }
+  if (cancelBtn && !cancelBtn.dataset.bound) {
+    cancelBtn.dataset.bound = "true";
+    cancelBtn.addEventListener("click", handleCancelDownload);
+  }
+}
+
+// Auto-initialize controls on DOM ready
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCrawlerControls);
+  } else {
+    initCrawlerControls();
   }
 }

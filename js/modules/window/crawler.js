@@ -28,10 +28,23 @@ export async function getSourceTab() {
   // Fallback: Create a silent background tab without stealing user focus
   const newTab = await chrome.tabs.create({ url: "about:blank", active: false });
   state.sourceTabId = newTab.id;
+  state.createdTabId = newTab.id;
   try {
     await chrome.tabs.update(newTab.id, { autoDiscardable: false });
   } catch (_) {}
   return newTab;
+}
+
+/**
+ * Closes background tabs created by the crawler when cancelled.
+ */
+export async function closeCreatedTabs() {
+  if (state.createdTabId) {
+    try {
+      await chrome.tabs.remove(state.createdTabId);
+    } catch (_) {}
+    state.createdTabId = null;
+  }
 }
 
 /**

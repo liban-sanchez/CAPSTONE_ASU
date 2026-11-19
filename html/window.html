@@ -41,6 +41,22 @@
           Calculating time left...
         </div>
 
+        <!-- CRAWLER CONTROLS -->
+        <div id="crawler-controls" class="gb-worker-controls">
+          <button id="pause-resume-button" class="btn btn-outline-primary btn-sm gb-control-btn" type="button" title="Pause or resume downloading">
+            <span class="gb-btn-icon" id="pause-resume-icon">❚❚</span>
+            <span id="pause-resume-text">Pause</span>
+          </button>
+          <button id="stop-button" class="btn btn-outline-warning btn-sm gb-control-btn" type="button" title="Stop downloading and save whatever has been gathered so far as a ZIP">
+            <span class="gb-btn-icon">⏹</span>
+            <span>Stop &amp; Save</span>
+          </button>
+          <button id="cancel-button" class="btn btn-outline-danger btn-sm gb-control-btn" type="button" title="Cancel and discard this download completely">
+            <span class="gb-btn-icon">✖</span>
+            <span>Cancel</span>
+          </button>
+        </div>
+
         <div class="gb-worker-hint">
           Keep this tab open until the download finishes. You can work in other tabs while it runs.
         </div>

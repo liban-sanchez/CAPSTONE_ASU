@@ -31,7 +31,9 @@ import {
   requestFallbackVideo,
   startDownloadTimer,
   finishDownloadTimer,
-  setEta
+  setEta,
+  checkPauseOrAbort,
+  disableControls
 } from './ui.js';
 
 import {
@@ -108,10 +110,14 @@ async function processHTML(
   savedPagesMap = null,
   isRootPage = false
 ) {
+  await checkPauseOrAbort();
+
   let htmlData =
     html === ""
       ? await getForegroundPageHtml(inputUrl)
       : html;
+
+  await checkPauseOrAbort();
 
   // ==========================================================
   // FOCUS MODE
@@ -131,6 +137,8 @@ async function processHTML(
     }
   }
 
+  await checkPauseOrAbort();
+
   // ==========================================================
   // ASSET PROCESSING
   // ==========================================================
@@ -141,20 +149,28 @@ async function processHTML(
     isRootPage
   );
 
+  await checkPauseOrAbort();
+
   htmlData = await processPdfs(
     htmlData,
     inputUrl
   );
+
+  await checkPauseOrAbort();
 
   htmlData = await processCSSAndImages(
     htmlData,
     inputUrl
   );
 
+  await checkPauseOrAbort();
+
   htmlData = await processJss(
     htmlData,
     inputUrl
   );
+
+  await checkPauseOrAbort();
 
   // ==========================================================
   // VIDEO PROCESSING
@@ -179,6 +195,8 @@ async function processHTML(
     inputUrl,
     isRootPage
   );
+
+  await checkPauseOrAbort();
 
   // ==========================================================
   // REWRITE PAGE LINKS
@@ -278,12 +296,18 @@ async function processLinks() {
       rootFilename
     );
 
+    await checkPauseOrAbort();
+
     const html = await processHTML(
       state.currentPage,
       "",
       savedPagesMap,
       true
     );
+
+    if (state.isCancelled) {
+      return;
+    }
 
     if (!html || html.trim().length === 0) {
       updateStatus("Scraping stopped: Webpage tab was closed repeatedly. Please keep it open in the background and try again.");
@@ -315,6 +339,8 @@ async function processLinks() {
         ? "Foreground crawl is running. Saving selected linked pages."
         : "Foreground crawl is running. Saving the starting page and first-level linked pages."
     );
+
+    await checkPauseOrAbort();
 
     let urls;
 
@@ -415,6 +441,8 @@ async function processLinks() {
     // ROOT PAGE
     // ========================================================
 
+    await checkPauseOrAbort();
+
     let rootHtml = "";
     try {
       rootHtml = await processHTML(
@@ -424,6 +452,9 @@ async function processLinks() {
         true
       );
     } catch (rootErr) {
+      if (rootErr && (rootErr.message === "SCRAPING_CANCELLED" || rootErr.message === "SCRAPING_STOPPED")) {
+        throw rootErr;
+      }
       console.warn("Root page processing failed, retrying with fresh tab...", rootErr);
       state.sourceTabId = null;
       try {
@@ -434,8 +465,28 @@ async function processLinks() {
           true
         );
       } catch (rootRetryErr) {
+        if (rootRetryErr && (rootRetryErr.message === "SCRAPING_CANCELLED" || rootRetryErr.message === "SCRAPING_STOPPED")) {
+          throw rootRetryErr;
+        }
         console.error("Root page retry also failed:", rootRetryErr);
       }
+    }
+
+    if (state.isCancelled) {
+      return;
+    }
+
+    if (state.isStopped) {
+      if (rootHtml) {
+        state.zip.file(
+          getTitle(
+            state.currentPage
+          ) + ".html",
+          rootHtml
+        );
+      }
+      generateMasterIndex(savedPagesMap);
+      return;
     }
 
     if (!rootHtml || rootHtml.trim().length === 0) {
@@ -463,6 +514,12 @@ async function processLinks() {
     // ========================================================
 
     for (const url of urls) {
+      if (state.isStopped || state.isCancelled) {
+        console.log("Crawl stopped early by user.");
+        break;
+      }
+
+      await checkPauseOrAbort();
 
       try {
 
@@ -481,6 +538,9 @@ async function processLinks() {
             false
           );
         } catch (pageErr) {
+          if (pageErr && (pageErr.message === "SCRAPING_CANCELLED" || pageErr.message === "SCRAPING_STOPPED")) {
+            throw pageErr;
+          }
           console.warn(`Page ${url} failed, retrying with fresh tab...`, pageErr);
           state.sourceTabId = null;
           pageHtml = await processHTML(
@@ -520,6 +580,13 @@ async function processLinks() {
         );
 
       } catch (error) {
+        if (error && error.message === "SCRAPING_STOPPED") {
+          console.log("Crawl stopped early by user.");
+          break;
+        }
+        if (error && error.message === "SCRAPING_CANCELLED") {
+          throw error;
+        }
 
         console.error(
           "Failed processing page:",
@@ -534,6 +601,10 @@ async function processLinks() {
           totalPages
         );
       }
+    }
+
+    if (state.isCancelled) {
+      return;
     }
 
     // ========================================================
@@ -568,9 +639,21 @@ function generateMasterIndex(
 
   updateStatus("Generating master index.html...");
   
+  // Filter savedPagesMap to only include pages that were actually saved in the zip
+  const actualSavedPagesMap = new Map();
+  for (const [originalUrl, localPath] of savedPagesMap.entries()) {
+    if (state.zip.file(localPath)) {
+      actualSavedPagesMap.set(originalUrl, localPath);
+    }
+  }
+
+  if (actualSavedPagesMap.size === 0) {
+    return;
+  }
+
   // Identify the root page and check if it's the only page downloaded
-  const rootPagePath = savedPagesMap.values().next().value;
-  const isSinglePage = savedPagesMap.size === 1;
+  const rootPagePath = actualSavedPagesMap.values().next().value;
+  const isSinglePage = actualSavedPagesMap.size === 1;
   
   let indexHtml = `
     <!DOCTYPE html>
@@ -603,7 +686,7 @@ function generateMasterIndex(
   `;
 
   let isFirstItem = true;
-  for (const [originalUrl, localPath] of savedPagesMap.entries()) {
+  for (const [originalUrl, localPath] of actualSavedPagesMap.entries()) {
     const safeTitle = getTitle(originalUrl);
     indexHtml += `
       <li>
@@ -691,7 +774,22 @@ export async function startScrapingProcess() {
     // START CRAWL
     // ========================================================
 
-    await processLinks();
+    try {
+      await processLinks();
+    } catch (crawlErr) {
+      if (crawlErr && crawlErr.message === "SCRAPING_CANCELLED") {
+        return;
+      }
+      if (crawlErr && crawlErr.message === "SCRAPING_STOPPED") {
+        console.log("Crawl stopped by user; proceeding to package collected pages.");
+      } else {
+        throw crawlErr;
+      }
+    }
+
+    if (state.isCancelled) {
+      return;
+    }
 
     console.log("=== VIDEO FALLBACK DEBUG ===");
     console.log("videoFound:", state.videoFound);
@@ -728,6 +826,8 @@ export async function startScrapingProcess() {
      */
 
     if (
+      !state.isStopped &&
+      !state.isCancelled &&
       state.videoFound &&
       state.videoDownloadFailed &&
       !state.videoDownloaded &&
@@ -824,6 +924,7 @@ export async function startScrapingProcess() {
      */
 
     if (
+      !state.isCancelled &&
       Array.isArray(
         state.selectedLocalVideos
       ) &&
@@ -850,12 +951,21 @@ export async function startScrapingProcess() {
       await addLocalVideosToZip();
     }
 
+    if (state.isCancelled) {
+      return;
+    }
+
+    // Disable buttons once crawl has completed and packaging begins
+    disableControls();
+
     // ========================================================
     // PREPARE ZIP
     // ========================================================
 
     updateStatus(
-      "Preparing ZIP download..."
+      state.isStopped
+        ? "Packaging pages collected so far into ZIP..."
+        : "Preparing ZIP download..."
     );
 
     setEta("Finishing the ZIP...");
@@ -1036,8 +1146,12 @@ export async function startScrapingProcess() {
           // COMPLETE
           // ==================================================
 
+          const completeMessage = state.isStopped
+            ? "Download complete (stopped early). " + zipName + " is in your downloads folder."
+            : "Download complete. " + zipName + " is in your downloads folder.";
+
           updateStatus(
-            "Download complete. " + zipName + " is in your downloads folder."
+            completeMessage
           );
 
           recordDownload("complete", content.size);
@@ -1065,6 +1179,11 @@ export async function startScrapingProcess() {
     // ========================================================
     // ERROR HANDLING
     // ========================================================
+
+    if (error && error.message === "SCRAPING_CANCELLED") {
+      console.log("Scraping was cancelled by user.");
+      return;
+    }
 
     console.error(
       "Error in scraping/ZIP/download process:",

@@ -1,10 +1,15 @@
 import { state } from './modules/window/state.js';
-import { enforceWindowSize } from './modules/window/ui.js';
+import { enforceWindowSize, initCrawlerControls } from './modules/window/ui.js';
 import { startScrapingProcess } from './modules/window/scraper.js';
 
 // ============================================================
 // WINDOW EVENTS
 // ============================================================
+
+window.addEventListener(
+  "DOMContentLoaded",
+  initCrawlerControls
+);
 
 window.addEventListener(
   "load",

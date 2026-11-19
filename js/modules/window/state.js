@@ -8,6 +8,7 @@ export const state = {
   startingURLInput: "",
   currentPage: "",
   sourceTabId: null,
+  createdTabId: null,
 
   isExcludeImages: false,
   isFocusMode: false,
@@ -15,6 +16,13 @@ export const state = {
 
   maxDepthValue: 0,
   depthOneMode: "all",
+
+  // Crawler Controls
+  isPaused: false,
+  isStopped: false,
+  isCancelled: false,
+  resumeResolve: null,
+  statusBeforePause: "",
 
   selectedManualLinks: [],
   selectedLocalVideos: [],
@@ -78,6 +86,12 @@ export function resetAssetState() {
   state.urlPdfs = [];
 
   state.selectedLocalVideos = [];
+
+  state.isPaused = false;
+  state.isStopped = false;
+  state.isCancelled = false;
+  state.resumeResolve = null;
+  state.statusBeforePause = "";
 
   state.zip = new JSZip();
 }

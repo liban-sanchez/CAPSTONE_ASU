@@ -311,6 +311,36 @@ body.gb-worker {
   color: var(--gb-muted);
 }
 
+.gb-worker-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.gb-control-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.gb-control-btn .gb-btn-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.gb-control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .gb-worker-done {
   margin-top: 20px;
   padding-top: 18px;
