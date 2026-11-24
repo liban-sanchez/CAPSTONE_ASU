@@ -1,6 +1,6 @@
 {
   "name": "Project Scraper by Grey-box",
-  "description": "A Chrome extension which creates an offline website that can be viewed on any modern browser without requiring the browser extension or any specialized app to read the file",
+  "description": "A Chrome extension which downloads a website",
   "version": "3.3.0",
   "manifest_version": 3,
   "icons": {
